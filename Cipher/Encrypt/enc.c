@@ -17,7 +17,7 @@ int main() {
     }
     v[0]=v0; v[1]=v1;
 
-    printf("0x%08X 0x%08X\n", v[0], v[1]);
+    printf("{ 0x%08X, 0x%08X }\n", v[0], v[1]);
     return 0;
 }
 
