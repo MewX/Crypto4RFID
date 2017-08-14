@@ -1,4 +1,4 @@
 # Cipher
 Debug/
 Release/
-
+*.out
