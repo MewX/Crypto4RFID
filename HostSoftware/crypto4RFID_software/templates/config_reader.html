@@ -1,11 +1,11 @@
 {% extends 'base.html' %}
 
 {% block content %}
-	<h1>Configuration</h1>
-	<form action="/config_request/" method="post">
+	<form id="contact" action="/config_request/" method="post">
+	<h3>Configuration</h3>
+	<h4>RFID reader configuration for Sllurp</h4>
 		{% csrf_token %}
 		{{ form.as_p }}
-		<input type="submit" class="save btn btn-default" value="CONNECT">
+		<button name="submit" type="submit" id="contact-submit" data-submit="...Sending">Connect</button>
 	</form>
 {% endblock %}
-	
