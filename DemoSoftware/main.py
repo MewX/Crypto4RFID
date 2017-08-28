@@ -108,6 +108,7 @@ def parse_args():
     parser.add_argument('-T', '--tari', default=0, type=int, help='Tari value (default 0=auto)')
     return parser.parse_args()
 
+#Reader Operation Control
 def reader_control(arg):
     if arg == 'resume':
         fac.resumeInventory()
