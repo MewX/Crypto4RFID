@@ -18,3 +18,24 @@ body {
 	position:relative;
 }
 
+.table{
+	margin: 10px 0;
+}
+
+.table thead > tr > td {
+	color : #333;
+	background-color: #fff;
+}
+
+.table tbody tr > td {
+	color : #333;
+	background-color: #fff;
+}
+
+.btn-group{
+	margin: 10px 15px 0;
+}
+
+.btn-group > form {
+	display: inline;
+}
