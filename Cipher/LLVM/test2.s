@@ -19,13 +19,12 @@ main:                                   ; @main
 	mov.w	&.Lmain.v+4, -20(r4)
 	mov.w	&.Lmain.v+2, -22(r4)
 	mov.w	&.Lmain.v, -24(r4)
-	mov.b	#0, -25(r4)
+	mov.w	#0, -26(r4)
 	jmp	.LBB0_2
 .LBB0_1:                                ;   in Loop: Header=BB0_2 Depth=1
-	add.b	#1, -25(r4)
+	add.w	#1, -26(r4)
 .LBB0_2:                                ; =>This Inner Loop Header: Depth=1
-	mov.b	-25(r4), r13
-	sxt	r13
+	mov.w	-26(r4), r13
 	cmp.w	#100, r13
 	mov.w	r2, r12
 	rra.w	r13
@@ -60,7 +59,10 @@ main:                                   ; @main
 	bit.w	#1, r12
 	jeq	.LBB0_1
 ; BB#8:
-	mov.b	#0, -26(r4)
+	;APP
+	 NOP
+	;NO_APP
+	mov.b	#0, -27(r4)
 	mov.w	-24(r4), r12
 	mov.w	-22(r4), -30(r4)
 	mov.w	r12, -32(r4)
@@ -71,7 +73,7 @@ main:                                   ; @main
 	mov.w	#31161, -40(r4)
 	mov.w	#-29218, -42(r4)
 	mov.w	#28224, -44(r4)
-	mov.b	#0, -26(r4)
+	mov.b	#0, -27(r4)
 	jmp	.LBB0_10
 .LBB0_9:                                ;   in Loop: Header=BB0_10 Depth=1
 	mov.w	-32(r4), r12
@@ -209,9 +211,9 @@ main:                                   ; @main
 	sub.w	r12, -32(r4)
 	subc.w	r14, r13
 	mov.w	r13, -30(r4)
-	add.b	#1, -26(r4)
+	add.b	#1, -27(r4)
 .LBB0_10:                               ; =>This Inner Loop Header: Depth=1
-	mov.b	-26(r4), r12
+	mov.b	-27(r4), r12
 	cmp.w	#64, r12
 	jlo	.LBB0_9
 ; BB#11:
@@ -221,6 +223,9 @@ main:                                   ; @main
 	mov.w	-36(r4), r12
 	mov.w	-34(r4), -18(r4)
 	mov.w	r12, -20(r4)
+	;APP
+	 NOP
+	;NO_APP
 	mov.w	#0, r14
 	mov.w	#0, r15
 	add.w	#36, r1
