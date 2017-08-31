@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdio.h>
 
 /**
  * main.c
@@ -26,6 +27,7 @@ int main(void)
     v[0] = v0; v[1] = v1;
 
     asm(" NOP"); // ending position
+    printf("%d %d\n", v[0], v[1]);
 
 	return 0;
 }

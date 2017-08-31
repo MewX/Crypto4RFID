@@ -11,7 +11,7 @@ main:                                   ; @main
 	push.w	r10
 	push.w	r9
 	push.w	r8
-	sub.w	#36, r1
+	sub.w	#48, r1
 	mov.w	#0, -10(r4)
 	mov.w	#0, -12(r4)
 	mov.b	#64, -13(r4)
@@ -226,9 +226,19 @@ main:                                   ; @main
 	;APP
 	 NOP
 	;NO_APP
+	mov.w	-24(r4), r12
+	mov.w	-22(r4), r13
+	mov.w	-20(r4), r14
+	mov.w	-18(r4), r15
+	mov.w	r15, 8(r1)
+	mov.w	r14, 6(r1)
+	mov.w	r13, 4(r1)
+	mov.w	r12, 2(r1)
+	mov.w	#.L.str, 0(r1)
+	call	#printf
 	mov.w	#0, r14
 	mov.w	#0, r15
-	add.w	#36, r1
+	add.w	#48, r1
 	pop.w	r8
 	pop.w	r9
 	pop.w	r10
@@ -255,6 +265,12 @@ main.key:
 	.long	858993459               ; 0x33333333
 	.long	1145324612              ; 0x44444444
 	.size	main.key, 16
+
+	.type	.L.str,@object          ; @.str
+	.section	.rodata.str1.1,"aMS",@progbits,1
+.L.str:
+	.asciz	"%d %d\n"
+	.size	.L.str, 7
 
 
 	.ident	"Ubuntu clang version 3.4-1ubuntu3 (tags/RELEASE_34/final) (based on LLVM 3.4)"
