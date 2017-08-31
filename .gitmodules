@@ -1,0 +1,3 @@
+[submodule "Cipher/bloc"]
+	path = Cipher/bloc
+	url = https://github.com/kmarquet/bloc
