@@ -2,8 +2,6 @@
 #define TOOLS_H
 
 void delay(unsigned int d);
-int uart1_init();
-int uart1_putchar(int c);
 
 int putchar(int c);
 
