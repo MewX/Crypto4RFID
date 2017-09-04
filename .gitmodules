@@ -1,0 +1,6 @@
+[submodule "Cipher/bloc"]
+	path = Cipher/bloc
+	url = https://github.com/kmarquet/bloc
+[submodule "Cipher/speck"]
+	path = Cipher/speck
+	url = https://github.com/madmo/speck

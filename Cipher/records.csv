@@ -1,2 +1,14 @@
 "Time (mm/dd/yyyy)	",Code size (size of main.obj),Cycle count,Block size (bits),Evaluation (=BxC/D),Comments
 8/15/2017 00:41,8212,12618,64,1619047.125,"Initilized the codes, making sure the codes can decipher correctly."
+8/22/2017 00:24,8184,12619,64,1613654.625,Register Optimization + speed/size=0
+8/22/2017 00:27,8184,12619,64,1613654.625,Register Optimization + speed/size=1
+8/22/2017 00:30,8144,12606,64,1604113.5,Register Optimization + speed/size=5
+8/22/2017 00:30,8008,12563,64,1571945.375,Local Optimization + speed/size=0
+8/22/2017 00:32,8008,12563,64,1571945.375,"Local Optimization + speed/size=1 (Based on previous experiments, I assume that speed/size 0 and 1 are equivelent)"
+8/22/2017 00:35,8008,12563,64,1571945.375,Local Optimization + speed/size=5
+8/22/2017 00:37,7984,12438,64,1551640.5,Global Optimization + speed/size=0
+8/22/2017 00:41,9048,12391,64,1751777.625,Global Optimization + speed/size=5
+8/22/2017 00:43,7984,12436,64,1551391,Interprocedure Optimization + speed/size=0
+8/22/2017 00:43,9048,12391,64,1751777.625,Interprocedure Optimization + speed/size=5 (same to global optimization)
+8/22/2017 00:45,7984,12436,64,1551391,Whole Program Optimization + speed/size=0
+8/22/2017 00:46,9048,12391,64,1751777.625,Whole Program Optimization + speed/size=5 (same to global optimization)
