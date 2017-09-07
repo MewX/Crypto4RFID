@@ -18,72 +18,9 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <stdint.h>
 #include <msp430.h>
 
-  #define ROR(x, r) ((x >> r) | (x << ((sizeof(uint32_t) * 8) - r)))
-  #define ROL(x, r) ((x << r) | (x >> ((sizeof(uint32_t) * 8) - r)))
+#include "speck128.h"
 
-
-  #define R(x, y, k) (x = ROR(x, 8), x += y, x ^= k, y = ROL(y, 3), y ^= x)
-  #define RR(x, y, k) (y ^= x, y = ROR(y, 3), x ^= k, x -= y, x = ROL(x, 8))
-
-
-
-void SPECK_CORE(uint32_t  pt[2], uint32_t ct[2], uint32_t  K[4])
-{
-  uint32_t i, b = K[0];
-  uint32_t a[3];
-  ct[0]=pt[0]; ct[1]=pt[1];
-
-  a[0] = K[1];
-  a[1] = K[2];
-  a[2] = K[3];
-
-  R(ct[1], ct[0], b);
-  for(i = 0; i < 24; i+=3){
-    R(a[0], b, i);
-    R(ct[1], ct[0], b);
-    R(a[1], b, i + 1);
-    R(ct[1], ct[0], b);
-    R(a[2], b, i + 2);
-    R(ct[1], ct[0], b);
-  }
-    R(a[0], b, 24);// rest term out side multiple of 3
-    R(ct[1], ct[0], b);
-    R(a[1], b, 25);
-    R(ct[1], ct[0], b);
-}
-
-
-void HASH_SPECK128(uint64_t nonce,uint8_t firmware[], uint16_t size, uint32_t state[2]){
-    uint16_t idx = 0;
-    state[0] = (nonce & 0xffffffff);
-    state[1] = (nonce >> 32);
-    uint32_t nextState[2] = {0,0};
-    uint32_t block[4];
-    uint16_t residual = size;
-    if(size > 16){
-        for(idx = 0;idx<size-16;idx+=16){     //first n blocks
-            //uint32_t* input = (firmware+(idx*sizeof(uint8_t)));
-            memcpy(block,(firmware+(idx*sizeof(uint8_t))),16);
-            SPECK_CORE(state,nextState,block);
-            state[0] = nextState[0];
-            state[1] = nextState[1];
-        }
-        residual = size - idx;//how many bytes left not hashed
-    }else{
-        residual = size;
-        idx = 0;
-    }
-    //last block if firmware is not whole multiple of 128 bit
-    memcpy(block,(firmware+(idx*sizeof(uint8_t))),residual);
-    memset(block+residual,0,16-residual);
-    SPECK_CORE(state,nextState,block);//fill the missing byte with 0
-    state[0] = nextState[0];
-    state[1] = nextState[1];
-}
-
-
-
-int main(int argc, char** argv)
+int main()
 {
     WDTCTL = WDTPW | WDTHOLD;   // Stop watchdog timer
     PM5CTL0 &= ~LOCKLPM5;       // Lock LPM5.
@@ -103,15 +40,17 @@ int main(int argc, char** argv)
     0x10,0x00,0x42,0x03,0xb2,0x40,0xe7,0x03,0x52,0x03,0xb2,0x40,0x10,0x01,0x40,0x03,
     0x03,0x43,0x32,0xd0,0xd8,0x00,0x03,0x43,0x03,0x43,0x0c,0x43,0x10,0x01,0xb2,0x40,
     0xde,0xc0,0x00,0x1c,0xd2,0xd3,0x02,0x1c,0x32,0xc2,0x03,0x43,0xb2,0x40,0x04,0xa5,
-    0x20,0x01,0xff,0x3f,0x03,0x43,0x03,0x43,0xff,0x3f,0x03,0x43,0x1c,0x43,0x10,0x01,
+    0x20,0x01,0xff,0x3f,0x03,0x43,0x03,0x43,0xff,0x3f,0x03,0x43,0x1c,0x43,0x10,0x01, // 15 * 16 = 240 bytes
     };
-    uint16_t App1_size = 128;// make sure the firmware is continuous and you know its size
+    uint16_t App1_size = 128; // make sure the firmware is continuous and you know its size
     uint64_t nonce = 0x0102030405060708;// nonce know by both side, protect reply attack
-    uint64_t s[1];
-    HASH_SPECK128(nonce,(uint8_t *)App1,App1_size,s);
+    uint64_t s;
+
+    HASH_SPECK128(nonce, App1, App1_size, (uint32_t *)&s);
+    __asm(" NOP");
 
     uint8_t hashV[8]; // hash value
-    memcpy(hashV, s, 8);
+    memcpy(hashV, &s, 8);
 
     return 0;
 }
