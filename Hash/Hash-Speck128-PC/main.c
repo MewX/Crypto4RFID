@@ -52,25 +52,26 @@ void SPECK_CORE(uint32_t  pt[2], uint32_t ct[2], uint32_t  K[4])
 
 void __attribute__ ((noinline)) HASH_SPECK128(uint64_t nonce, const uint8_t firmware[], uint16_t size, uint32_t state[2]) {
     uint16_t idx = 0;
+    //uint16_t i = 0;
     state[0] = (nonce & 0xffffffff); // low 32 bits
     state[1] = (nonce >> 32); // high 32 bits
     uint32_t nextState[2] = {0,0};
-    uint32_t block[4];
+    uint32_t block[4]; // key
     uint16_t residual = size;
-    if(size > 16){
-        for(idx = 0;idx<size-16;idx+=16){     //first n blocks
-            //printf("idx %d: [%2X][%2X]\n", idx, firmware[idx], )
-            //uint32_t* input = (firmware+(idx*sizeof(uint8_t)));
-            memcpy(block,(firmware+(idx*sizeof(uint8_t))),16);
-            SPECK_CORE(state,nextState,block);
-            state[0] = nextState[0];
-            state[1] = nextState[1];
-        }
-        residual = size - idx;//how many bytes left not hashed
-    }else{
-        residual = size;
-        idx = 0;
+    
+    for(;idx<size-16;idx+=16){     //first n blocks
+        //printf("Processing idx = %d: ", idx);
+        //for (i = 0; i < 16; i ++) printf("0x%02X ", firmware[idx + i]);
+        //printf("\n");
+        //uint32_t* input = (firmware+(idx*sizeof(uint8_t)));
+        memcpy(block,(firmware+(idx*sizeof(uint8_t))),16); // 16 * 8 = 128 key
+        SPECK_CORE(state,nextState,block);
+        state[0] = nextState[0];
+        state[1] = nextState[1];
     }
+    residual = size - idx; //how many bytes left not hashed
+    //printf("Last idx = %d; residual = %d.\n", idx, residual);
+    
     //last block if firmware is not whole multiple of 128 bit
     memcpy(block,(firmware+(idx*sizeof(uint8_t))),residual);
     memset(block+residual,0,16-residual);
@@ -105,11 +106,7 @@ int main(int argc, char** argv)
     uint64_t s;int i;
     HASH_SPECK128(nonce, App1, App1_size, (uint32_t *)&s);
 	
-	printf("The hash value is: ");
-    for (i = 0; i < 64; i ++, s >>= 1) {
-        printf((s & 1) ? "1" : "0");
-    }
-    printf("\n");
+	printf("The hash value is: 0x%16lX\n", s);
 	
     return 0;
 }
