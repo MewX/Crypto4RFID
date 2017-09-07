@@ -50,21 +50,26 @@ void SPECK_CORE(uint32_t  pt[2], uint32_t ct[2], uint32_t  K[4])
     R(ct[1], ct[0], b);
 }
 
-
-void HASH_SPECK128(uint64_t nonce,uint8_t firmware[], uint16_t size, uint32_t state[2]){
+void __attribute__ ((noinline)) HASH_SPECK128(uint64_t nonce, const uint8_t firmware[], uint16_t size, uint32_t state[2]) {
     uint16_t idx = 0;
-    state[0] = (nonce & 0xffffffff);
-    state[1] = (nonce >> 32);
+    state[0] = (nonce & 0xffffffff); // low 32 bits
+    state[1] = (nonce >> 32); // high 32 bits
     uint32_t nextState[2] = {0,0};
     uint32_t block[4];
     uint16_t residual = size;
-    for(idx = 0;idx<size;idx+=16){     //first n blocks
-        //uint32_t* input = (firmware+(idx*sizeof(uint8_t)));
-        memcpy(block,(firmware+(idx*sizeof(uint8_t))),16);
+    if(size > 16){
+        for(idx = 0;idx<size-16;idx+=16){     //first n blocks
+            //printf("idx %d: [%2X][%2X]\n", idx, firmware[idx], )
+            //uint32_t* input = (firmware+(idx*sizeof(uint8_t)));
+            memcpy(block,(firmware+(idx*sizeof(uint8_t))),16);
+            SPECK_CORE(state,nextState,block);
+            state[0] = nextState[0];
+            state[1] = nextState[1];
+        }
         residual = size - idx;//how many bytes left not hashed
-        SPECK_CORE(state,nextState,block);
-        state[0] = nextState[0];
-        state[1] = nextState[1];
+    }else{
+        residual = size;
+        idx = 0;
     }
     //last block if firmware is not whole multiple of 128 bit
     memcpy(block,(firmware+(idx*sizeof(uint8_t))),residual);
@@ -73,8 +78,6 @@ void HASH_SPECK128(uint64_t nonce,uint8_t firmware[], uint16_t size, uint32_t st
     state[0] = nextState[0];
     state[1] = nextState[1];
 }
-
-#include <stdio.h>
 
 
 int main(int argc, char** argv)
@@ -97,22 +100,16 @@ int main(int argc, char** argv)
     0xde,0xc0,0x00,0x1c,0xd2,0xd3,0x02,0x1c,0x32,0xc2,0x03,0x43,0xb2,0x40,0x04,0xa5,
     0x20,0x01,0xff,0x3f,0x03,0x43,0x03,0x43,0xff,0x3f,0x03,0x43,0x1c,0x43,0x10,0x01,
     };
-    uint16_t App1_size = 240;
-    uint64_t nonce = 0x0102030405060708;
-    uint64_t s[1];
-    HASH_SPECK128(nonce,(uint8_t *)App1,App1_size,s);
+    uint16_t App1_size = 128;
+    uint64_t nonce = 0x0102030405060708;// nonce know by both side, protect reply attack
+    uint64_t s;int i;
+    HASH_SPECK128(nonce, App1, App1_size, (uint32_t *)&s);
 	
-	printf("The hash value is:");
-	while (*s) {
-    if (*s & 1)
-        printf("1");
-    else
-        printf("0");
-
-    *s >>= 1;
-}
-printf("\n");
-	
+	printf("The hash value is: ");
+    for (i = 0; i < 64; i ++, s >>= 1) {
+        printf((s & 1) ? "1" : "0");
+    }
+    printf("\n");
 	
     return 0;
 }
