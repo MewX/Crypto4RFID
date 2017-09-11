@@ -4,3 +4,9 @@
 [submodule "Cipher/speck"]
 	path = Cipher/speck
 	url = https://github.com/madmo/speck
+[submodule "Hash/skein-arm"]
+	path = Hash/skein-arm
+	url = https://github.com/unbounded/skein-arm
+[submodule "Hash/BLAKE2"]
+	path = Hash/BLAKE2
+	url = https://github.com/BLAKE2/BLAKE2
