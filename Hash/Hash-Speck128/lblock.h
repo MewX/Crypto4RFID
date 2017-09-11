@@ -3,6 +3,11 @@
  *
  *  Created on: Sep 7, 2017
  *      Author: MewX
+ *
+ * This version takes 4 bytes as scheduled subkeys from input each time,
+ * in the original cipher algorithm, 10-byte key is converted into 128 bytes subkeys,
+ * and then run decipher. This is faster than using key schedule function,
+ * however, when the input is less than 128 bytes, it's not safe enough.
  */
 
 #ifndef LBLOCK_H_

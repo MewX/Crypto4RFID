@@ -3,10 +3,13 @@
  *
  *  Created on: Sep 7, 2017
  *      Author: MewX
+ *
+ * This version takes 10 bytes from input each time,
+ * and sends them into keySchedule function, then run decipher.
  */
 
-#ifndef LBLOCK_H_
-#define LBLOCK_H_
+#ifndef LBLOCKV2_H_
+#define LBLOCKV2_H_
 
 #include <stdint.h>
 
@@ -173,4 +176,4 @@ void __attribute__ ((noinline)) HASH_LBLOCK(uint64_t nonce, const u8 firmware[],
     memcpy(state, nextState, sizeof(uint64_t));
 }
 
-#endif /* LBLOCK_H_ */
+#endif /* LBLOCKV2_H_ */
