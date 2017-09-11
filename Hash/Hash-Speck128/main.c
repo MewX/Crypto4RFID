@@ -19,7 +19,9 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <msp430.h>
 
 //#include "speck128.h"
-#include "lblock.h"
+//#include "lblock.h"
+//#include "lblockv2.h"
+#include "xtea.h"
 
 int main()
 {
@@ -48,7 +50,8 @@ int main()
     uint64_t s;
 
     //HASH_SPECK128(nonce, App1, App1_size, (uint32_t *)&s);
-    HASH_LBLOCK(nonce, App1, App1_size, (uint8_t *)&s);
+    //HASH_LBLOCK(nonce, App1, App1_size, (uint8_t *)&s);
+    HASH_XTEA(nonce, App1, App1_size, (uint8_t *)&s);
     __asm(" NOP");
 
     uint8_t hashV[8]; // hash value
