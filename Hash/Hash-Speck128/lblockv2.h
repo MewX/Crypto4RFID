@@ -134,7 +134,7 @@ void OneRound_Inv(u8 y[8], u8 k[4])
 
 void Decrypt(u8 x[8], u8 subkey[NBROUND][4])
 {
-    u16 i;
+    int8_t i;
     OneRound_Inv(x, subkey[31]);
     for (i = 30; i >= 0; i--)
     {
@@ -152,7 +152,6 @@ void __attribute__ ((noinline)) HASH_LBLOCK(uint64_t nonce, const u8 firmware[],
 
     u16 idx = 0;
     u16 residual = size;
-    u8 nextState[8] = {0};
     memcpy(state, &nonce, sizeof(uint64_t)); // 16 * 8 = 128 key
     for(;idx<size-ROUND_SIZE;idx+=ROUND_SIZE){     //first n blocks
         //printf("Processing idx = %d: ", idx);
@@ -162,7 +161,6 @@ void __attribute__ ((noinline)) HASH_LBLOCK(uint64_t nonce, const u8 firmware[],
 
         EncryptKeySchedule(mkey,rkey);
         Decrypt(state, rkey);
-        memcpy(state, nextState, sizeof(uint64_t));
     }
     residual = size - idx; //how many bytes left not hashed
     //printf("Last idx = %d; residual = %d.\n", idx, residual);
@@ -173,7 +171,6 @@ void __attribute__ ((noinline)) HASH_LBLOCK(uint64_t nonce, const u8 firmware[],
 
     EncryptKeySchedule(mkey,rkey);
     Decrypt(state, rkey); //fill the missing byte with 0
-    memcpy(state, nextState, sizeof(uint64_t));
 }
 
 #endif /* LBLOCKV2_H_ */
