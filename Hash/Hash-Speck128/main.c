@@ -21,9 +21,9 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 //#define AES_HASH
 
 #ifndef AES_HASH
-//#include "speck128.h"
+#include "speck128.h"
 //#include "lblock.h"
-#include "lblockv2.h"
+//#include "lblockv2.h"
 //#include "xtea.h"
 #else
 #include "aeshard.h"
@@ -53,7 +53,7 @@ int main()
     0xde,0xc0,0x00,0x1c,0xd2,0xd3,0x02,0x1c,0x32,0xc2,0x03,0x43,0xb2,0x40,0x04,0xa5,
     0x20,0x01,0xff,0x3f,0x03,0x43,0x03,0x43,0xff,0x3f,0x03,0x43,0x1c,0x43,0x10,0x01, // 15 * 16 = 240 bytes
     };
-    uint16_t App1_size = 128; // make sure the firmware is continuous and you know its size
+    uint16_t App1_size = 240; // make sure the firmware is continuous and you know its size
     uint64_t nonce = 0x0102030405060708;// nonce know by both side, protect reply attack
 
 #ifndef AES_HASH
@@ -63,10 +63,11 @@ int main()
 #endif
 
 #ifndef AES_HASH
-    //HASH_SPECK128(nonce, App1, App1_size, (uint32_t *)&s);
-    HASH_LBLOCK(nonce, App1, App1_size, (uint8_t *)&s);
+    HASH_SPECK128(nonce, App1, App1_size, (uint32_t *)&s);
+    //HASH_LBLOCK(nonce, App1, App1_size, (uint8_t *)&s);
     //HASH_XTEA(nonce, App1, App1_size, (uint8_t *)&s);
     //HASH_XTEA_MP(nonce, App1, App1_size, (uint8_t *)&s);
+    //HASH_XTEA_MMO(nonce, App1, App1_size, (uint8_t *)&s);
 #else
     HASH_AES256_HARD(nonce, App1, App1_size, s);
 #endif

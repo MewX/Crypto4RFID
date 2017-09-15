@@ -72,4 +72,95 @@ void __attribute__ ((noinline)) HASH_SPECK128(uint64_t nonce, const uint8_t firm
     state[1] = nextState[1];
 }
 
+void __attribute__ ((noinline)) HASH_SPECK128_MP(uint64_t nonce,const uint8_t firmware[], uint16_t size, uint32_t state[4]){
+    uint16_t idx = 0;
+    uint8_t i=0;
+    state[0] = (nonce & 0xffffffff);
+    state[1] = (nonce >> 32);
+    state[2] = 0;
+    state[3] = 0;
+    uint32_t nextState[4] = {0,0,0,0};
+    uint32_t block[2];
+    uint16_t residual = size;
+    uint32_t prevState[4];
+    for(i=0;i<4;i++){
+        prevState[i] = state[i];
+    }
+    if(size > 8){
+        for(idx = 0;idx<size-8;idx+=8){     //first n blocks
+            memcpy(block,(firmware+(idx*sizeof(uint8_t))),8);
+            SPECK_CORE(block,nextState,state);
+            state[0] = nextState[0];
+            state[1] = nextState[1];
+            state[2] = 0;
+            state[3] = 0;
+            state[0] ^= block[0];
+            state[1] ^= block[1];
+            state[0] ^= prevState[0];
+            state[1] ^= prevState[1];
+            state[2] ^= prevState[2];
+            state[3] ^= prevState[3];
+            for(i=0;i<4;i++){
+                prevState[i] = state[i];
+            }
+        }
+        residual = size - idx;//how many bytes left not hashed
+    }else{
+        residual = size;
+        idx = 0;
+    }
+    //last block if firmware is not whole multiple of 64 bit
+    memcpy(block,(firmware+(idx*sizeof(uint8_t))),residual);
+    memset(block+residual,0,8-residual);
+    SPECK_CORE(block,nextState,state);//fill the missing byte with 0
+    state[0] = nextState[0];
+    state[1] = nextState[1];
+    state[2] = 0;
+    state[3] = 0;
+    state[0] ^= block[0];
+    state[1] ^= block[1];
+    state[0] ^= prevState[0];
+    state[1] ^= prevState[1];
+    state[2] ^= prevState[2];
+    state[3] ^= prevState[3];
+}
+
+void __attribute__ ((noinline)) HASH_SPECK128_MMO(uint64_t nonce,const uint8_t firmware[], uint16_t size, uint32_t state[4]){
+    uint16_t idx = 0;
+    uint8_t i=0;
+    state[0] = (nonce & 0xffffffff);
+    state[1] = (nonce >> 32);
+    state[2] = 0;
+    state[3] = 0;
+    uint32_t nextState[4] = {0,0,0,0};
+    uint32_t block[2];
+    uint16_t residual = size;
+    if(size > 8){
+        for(idx = 0;idx<size-8;idx+=8){     //first n blocks
+            memcpy(block,(firmware+(idx*sizeof(uint8_t))),8);
+            SPECK_CORE(block,nextState,state);
+            state[0] = nextState[0];
+            state[1] = nextState[1];
+            state[2] = 0;
+            state[3] = 0;
+            state[0] ^= block[0];
+            state[1] ^= block[1];
+        }
+        residual = size - idx;//how many bytes left not hashed
+    }else{
+        residual = size;
+        idx = 0;
+    }
+    //last block if firmware is not whole multiple of 64 bit
+    memcpy(block,(firmware+(idx*sizeof(uint8_t))),residual);
+    memset(block+residual,0,8-residual);
+    SPECK_CORE(block,nextState,state);//fill the missing byte with 0
+    state[0] = nextState[0];
+    state[1] = nextState[1];
+    state[2] = 0;
+    state[3] = 0;
+    state[0] ^= block[0];
+    state[1] ^= block[1];
+}
+
 #endif /* SPECK128_H_ */
