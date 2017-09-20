@@ -10,3 +10,6 @@
 [submodule "Hash/BLAKE2"]
 	path = Hash/BLAKE2
 	url = https://github.com/BLAKE2/BLAKE2
+[submodule "Cipher/clefia"]
+	path = Cipher/clefia
+	url = https://github.com/fedescarpa/clefia
