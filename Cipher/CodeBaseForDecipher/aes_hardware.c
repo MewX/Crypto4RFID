@@ -20,7 +20,7 @@ int main(int argc, char** argv)
     //AES256_encryptData(AES256_BASE, Data, DataAESencrypted);
 
     // Load a cipher key to module
-    AES256_setDecipherKey(AES256_BASE, akey, 256);
+    AES256_setDecipherKey(AES256_BASE, akey, AES256_KEYLENGTH_128BIT);
     // Decrypt data
     AES256_decryptData(AES256_BASE, adata, decrypt);
 
