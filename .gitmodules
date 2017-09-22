@@ -16,3 +16,15 @@
 [submodule "Hash/smhasher"]
 	path = Hash/smhasher
 	url = https://github.com/rurban/smhasher
+[submodule "Cipher/lea"]
+	path = Cipher/lea
+	url = https://github.com/odzhan/lea
+[submodule "Cipher/PRINCE128"]
+	path = Cipher/PRINCE128
+	url = https://github.com/cdare77/PRINCE128
+[submodule "Cipher/prince-c-ref"]
+	path = Cipher/prince-c-ref
+	url = https://github.com/sebastien-riou/prince-c-ref/
+[submodule "Cipher/Crypt-Camellia"]
+	path = Cipher/Crypt-Camellia
+	url = https://github.com/s-aska/Crypt-Camellia
