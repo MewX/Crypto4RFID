@@ -377,8 +377,8 @@ void keySchedule(uint8_t* Key, uint8_t* subkey)
 
 int main()
 {
-    // Stop WatchDog during initialization
-    WDTCTL = WDTPW + WDTHOLD;
+    WDTCTL = WDTPW | WDTHOLD;   // Stop watchdog timer
+    PM5CTL0 &= ~LOCKLPM5;       // Lock LPM5.
 
     uint8_t state[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     uint32_t key[] = {0x17485418, 0x42465615, 0x90872153, 0x99887765};

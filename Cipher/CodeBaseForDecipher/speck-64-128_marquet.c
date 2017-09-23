@@ -44,8 +44,8 @@ void __attribute__ ((noinline)) Decrypt ( u16 text[], u16 crypt[], u16 key[] )
 
 int main ()
 {
-    // Stop WatchDog during initialization
-    WDTCTL = WDTPW + WDTHOLD;
+    WDTCTL = WDTPW | WDTHOLD;   // Stop watchdog timer
+    PM5CTL0 &= ~LOCKLPM5;       // Lock LPM5.
 
     u32 text[2];
     text[0] = 0x3b726574;

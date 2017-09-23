@@ -785,8 +785,8 @@ void Camellia_DecryptBlock(const unsigned char *ciphertext,
 
 int main(int argc, char* argv[])
 {
-    // Stop WatchDog during initialization
-    WDTCTL = WDTPW + WDTHOLD;
+    WDTCTL = WDTPW | WDTHOLD;   // Stop watchdog timer
+    PM5CTL0 &= ~LOCKLPM5;       // Lock LPM5.
 
     // ************ Declarations ************
     u16 text[8]={0xeeff, 0xccdd, 0xaabb, 0x8899, 0x6677, 0x4455, 0x4455, 0x0011};

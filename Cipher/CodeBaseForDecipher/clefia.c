@@ -346,8 +346,8 @@ void ClefiaDecrypt(u8 *pt, const u8 *ct, const u8 *rk, const int r)
 
 int main(int argc, u8* argv[])
 {
-    // Stop WatchDog during initialization
-    WDTCTL = WDTPW + WDTHOLD;
+    WDTCTL = WDTPW | WDTHOLD;   // Stop watchdog timer
+    PM5CTL0 &= ~LOCKLPM5;       // Lock LPM5.
 
     // ************ Declarations ************
     const u8 skey[16] = {

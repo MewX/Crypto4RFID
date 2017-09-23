@@ -97,8 +97,8 @@ void Swap(u8 block[8])
 
 int main()
 {
-    // Stop WatchDog during initialization
-    WDTCTL = WDTPW + WDTHOLD;
+    WDTCTL = WDTPW | WDTHOLD;   // Stop watchdog timer
+    PM5CTL0 &= ~LOCKLPM5;       // Lock LPM5.
 
     u8 mkey[10];
     u8 rkey[NBROUND][4];
