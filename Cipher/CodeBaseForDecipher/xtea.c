@@ -7,8 +7,9 @@
 /**
  * as a unique ID.
  */
-#include<stdint.h>
+#include <stdint.h>
 #include <msp430.h>
+#include "tools.h"
 
 //void XTEAdec(uint32_t * v,uint32_t *k,int N){
 //     uint32_t y=v[0],z=v[1],DELTA=0x9e3779b9;
@@ -56,17 +57,19 @@ void main(void)
     WDTCTL = WDTPW | WDTHOLD;   // Stop watchdog timer
     PM5CTL0 &= ~LOCKLPM5;       // Lock LPM5.
 
-     uint32_t text[2];
+    uint32_t text[2];
     text[0] = 0x4853224D;
     text[1] = 0x5F50DB40;
 
-     uint32_t key[4];
+    uint32_t key[4];
     key[0] = 0x17485418;
     key[1] = 0x42465615;
     key[2] = 0x90872153;
     key[3] = 0x99887765;
 
+    START_DECRYPT();
     tean(text,key,64);
+    END_EXPE();
 
-    asm(" NOP");
+    return 0;
 }

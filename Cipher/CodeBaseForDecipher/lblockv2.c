@@ -146,7 +146,7 @@ int main()
     u8 mkey[10];
     u8 rkey[NBROUND][4];
 
-     mkey[0] = 0xdc;
+    mkey[0] = 0xdc;
     mkey[1] = 0xfe;
     mkey[2] = 0xef;
     mkey[3] = 0xcd;
@@ -157,12 +157,12 @@ int main()
     mkey[8] = 0x23;
     mkey[9] = 0x01;
 
-   u8 state[8]={0xef, 0xcd, 0xab, 0x89, 0x67, 0x45, 0x23, 0x01};
+    u8 state[8]={0xef, 0xcd, 0xab, 0x89, 0x67, 0x45, 0x23, 0x01};
 
- START_DECRYPT();
- EncryptKeySchedule(mkey,rkey);
- Decrypt(state,rkey);
- END_EXPE();
+    START_DECRYPT();
+    EncryptKeySchedule(mkey,rkey);
+    Decrypt(state,rkey);
+    END_EXPE();
 
-return 0;
+    return 0;
 }

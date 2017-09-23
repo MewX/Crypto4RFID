@@ -11,6 +11,7 @@
 /*****************************************************************************/
 #include <msp430.h>
 #include <stdint.h>
+#include "tools.h"
 // State in the form {10,32,54,76,98,ba,dc,fe} for bit ordering in array
 static uint8_t* State;
 
@@ -385,7 +386,9 @@ int main()
     uint8_t ptext[] = {0x18, 0x68, 0x56, 0xaa, 0xd0, 0x20, 0xfd, 0xad};
 
     uint8_t subkey[8];
+    START_DECRYPT();
     keySchedule((uint8_t *)key, subkey);
     decipher(state, (uint8_t *)key, subkey);
+    END_EXPE();
     return 0;
 } // End main()

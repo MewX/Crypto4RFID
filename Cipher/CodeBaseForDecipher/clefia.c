@@ -212,25 +212,6 @@ void ClefiaGfn4(u8 *y, const u8 *x, const u8 *rk, int r)
   ByteCpy(y, fout, 16);
 }
 
-void ClefiaGfn8(u8 *y, const u8 *x, const u8 *rk, int r)
-{
-  u8 fin[32], fout[32];
-
-  ByteCpy(fin, x, 32);
-  while(r-- > 0){
-    ClefiaF0Xor(fout + 0,  fin + 0,  rk + 0);
-    ClefiaF1Xor(fout + 8,  fin + 8,  rk + 4);
-    ClefiaF0Xor(fout + 16, fin + 16, rk + 8);
-    ClefiaF1Xor(fout + 24, fin + 24, rk + 12);
-    rk += 16;
-    if(r){ /* swapping for encryption */
-      ByteCpy(fin + 0,  fout + 4, 28);
-      ByteCpy(fin + 28, fout + 0, 4);
-    }
-  }
-  ByteCpy(y, fout, 32);
-}
-
 void ClefiaGfn4Inv(u8 *y, const u8 *x, const u8 *rk, int r)
 {
   u8 fin[16], fout[16];
