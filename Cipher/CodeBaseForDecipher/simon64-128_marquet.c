@@ -1,5 +1,15 @@
 #include <stdint.h>
+//#define PC
+
 #include "tools.h"
+
+#ifdef PC
+#include <stdio.h>
+#endif
+
+#ifndef PC
+#include <msp430.h>
+#endif
 
 typedef uint8_t u8;
 typedef uint16_t u16;
@@ -38,21 +48,33 @@ void Decrypt ( u32 text[], u32 crypt[], u32 key[] )
 
 int main ()
 {
+	#ifndef PC
+    WDTCTL = WDTPW | WDTHOLD;   // Stop watchdog timer
+    PM5CTL0 &= ~LOCKLPM5;       // Lock LPM5.
+	#endif
 
     u32 text[2];
-    text[0] = 0x656b696c;
-    text[1] = 0x20646e75;
     u32 crypt[2] = {0};
+    crypt[0] = 0x656b696c;
+    crypt[1] = 0x20646e75;
     u32 k[44];
     k[3] = 0x1b1a1918;
     k[2] = 0x13121110;
     k[1] = 0x0b0a0908;
     k[0] = 0x03020100;
 
+	#ifndef PC
     START_DECRYPT();
+	#endif
     KeyExpansion ( k );
     Decrypt ( crypt, text, k );
+	#ifndef PC
     END_EXPE();
+	#endif
+	
+	#ifdef PC
+	printf("%0X %0X\n", text[0], text[1]);
+	#endif
 
     return 0;
 }
