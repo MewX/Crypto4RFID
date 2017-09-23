@@ -4,7 +4,6 @@
  */
 #include <msp430.h>
 #include <stdint.h>
-//#include <string.h>
 #include "tools.h"
 
 typedef uint32_t u32;
@@ -456,25 +455,6 @@ void AES_init( AES_CTX *ctx, u8 *key )
     AES_init_variable_keylength( ctx, key, 128 );
 }
 
-
-
-void AES_encrypt( AES_CTX *ctx, u8 *in, u8 *out)
-{
-    memcpy(out, in, AES_BLOCK_SIZE);
-    int i;
-    AddRoundKey( out, &ctx->enc_ks[0] );
-    for( i = 1; i < ctx->rounds; ++i)
-    {
-        SubBytes(out);
-        ShiftRows(out);
-        MixColumns(out);
-        AddRoundKey(out, &ctx->enc_ks[AES_BLOCK_SIZE * i]);
-    }
-    SubBytes(out);
-    ShiftRows(out);
-    AddRoundKey(out, &ctx->enc_ks[AES_BLOCK_SIZE * ctx->rounds]);
-}
-
 void AES_decrypt( AES_CTX *ctx, u8 *in, u8 *out)
 {
     memcpy(out, in, AES_BLOCK_SIZE);
@@ -494,7 +474,6 @@ void AES_decrypt( AES_CTX *ctx, u8 *in, u8 *out)
 
 int main ()
 {
-
     WDTCTL = WDTPW | WDTHOLD;   // Stop watchdog timer
     PM5CTL0 &= ~LOCKLPM5;       // Lock LPM5.
 
