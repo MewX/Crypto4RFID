@@ -13,9 +13,6 @@
 [submodule "Cipher/clefia"]
 	path = Cipher/clefia
 	url = https://github.com/fedescarpa/clefia
-[submodule "Hash/smhasher"]
-	path = Hash/smhasher
-	url = https://github.com/rurban/smhasher
 [submodule "Cipher/lea"]
 	path = Cipher/lea
 	url = https://github.com/odzhan/lea
