@@ -25,3 +25,6 @@
 [submodule "Cipher/Crypt-Camellia"]
 	path = Cipher/Crypt-Camellia
 	url = https://github.com/s-aska/Crypt-Camellia
+[submodule "Hash/smhasher"]
+	path = Hash/smhasher
+	url = https://github.com/aappleby/smhasher
