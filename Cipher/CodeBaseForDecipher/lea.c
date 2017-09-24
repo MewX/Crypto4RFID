@@ -45,14 +45,6 @@ static inline uint32_t rot32l5(uint32_t x) {
     return rot32r3(rot32l8(x));
 }
 
-static inline uint32_t rot32l9(uint32_t x) {
-    return rot32l1(rot32l8(x));
-}
-
-static inline uint32_t rot32r5(uint32_t x) {
-    return rot32l3(rot32r8(x));
-}
-
 static inline uint32_t rot32r9(uint32_t x) {
     return rot32r1(rot32r8(x));
 }
@@ -105,44 +97,6 @@ void LEA_Key(const uint8_t* userkey, uint8_t* roundkey){
     }
 }
 
-void LEA_Enc(const uint8_t* roundkey, uint8_t* data) {
-    uint32_t* block = (uint32_t*) data;
-    const uint32_t* rk = (const uint32_t*) roundkey;
-    uint8_t i;
-
-    uint32_t b0 = block[0];
-    uint32_t b1 = block[1];
-    uint32_t b2 = block[2];
-    uint32_t b3 = block[3];
-
-    for (i = 0; i < 6; ++i) {
-        b3 = rot32r3(((b2 ^ rk[1]) + (b3 ^ rk[0])));
-        b2 = rot32r5(((b1 ^ rk[2]) + (b2 ^ rk[0])));
-        b1 = rot32l9(((b0 ^ rk[3]) + (b1 ^ rk[0])));
-        rk += 4;
-
-        b0 = rot32r3(((b3 ^ rk[1]) + (b0 ^ rk[0])));
-        b3 = rot32r5(((b2 ^ rk[2]) + (b3 ^ rk[0])));
-        b2 = rot32l9(((b1 ^ rk[3]) + (b2 ^ rk[0])));
-        rk += 4;
-
-        b3 = rot32r3(((b0 ^ rk[1]) + (b1 ^ rk[0])));
-        b2 = rot32r5(((b3 ^ rk[2]) + (b0 ^ rk[0])));
-        b1 = rot32l9(((b2 ^ rk[3]) + (b3 ^ rk[0])));
-        rk += 4;
-
-        b3 = rot32r3(((b1 ^ rk[1]) + (b2 ^ rk[0])));
-        b2 = rot32r5(((b0 ^ rk[2]) + (b1 ^ rk[0])));
-        b1 = rot32l9(((b3 ^ rk[3]) + (b0 ^ rk[0])));
-        rk += 4;
-    }
-
-    block[0] = b0;
-    block[1] = b1;
-    block[2] = b2;
-    block[3] = b3;
-}
-
 void LEA_Dec(const uint8_t* roundkey, uint8_t* data)
 {
     uint32_t* block = (uint32_t*) data;
@@ -189,14 +143,13 @@ int main(int argc, char* argv[])
     PM5CTL0 &= ~LOCKLPM5;       // Lock LPM5.
 
     // ************ Declarations ************
-    uint16_t text[8]={0xeeff, 0xccdd, 0xaabb, 0x8899, 0x6677, 0x4455, 0x4455, 0x0011};
     uint16_t ptext[8]={0};
     uint16_t k128[8] = {0x0011, 0x4455, 0x4455, 0x6677, 0x8899, 0xaabb, 0xccdd, 0xeeff};
     uint8_t roundKey[384] = {0};
 
     START_DECRYPT();
     LEA_Key((uint8_t *)k128, roundKey);
-    LEA_Dec(roundKey, (uint8_t)ptext);
+    LEA_Dec(roundKey, (uint8_t *)ptext);
     END_EXPE();
     return 0;
 }
