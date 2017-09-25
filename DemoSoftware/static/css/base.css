@@ -64,3 +64,9 @@ body {
 .memroy-address{
 	/* margin: 0 15px 0; */
 }
+
+#modes{
+	margin-top:1px;
+	margin-left:5px;
+	float:right;
+}

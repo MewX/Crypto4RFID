@@ -1,9 +1,9 @@
 <div class="row">
 	<div class="switch-field">
-		<label class="radio-inline"><input type="radio" name="optradio" id="Reserved">Reserved</label>
-		<label class="radio-inline"><input type="radio" name="optradio" id="EPC" checked>EPC</label>
-		<label class="radio-inline"><input type="radio" name="optradio" id="TID">TID</label>
-		<label class="radio-inline"><input type="radio" name="optradio" id="User">User</label>
+		<label class="radio-inline"><input type="radio" name="optradio" value="0" id="Reserved">Reserved</label>
+		<label class="radio-inline"><input type="radio" name="optradio" value="1" id="EPC" checked>EPC</label>
+		<label class="radio-inline"><input type="radio" name="optradio" value="2" id="TID">TID</label>
+		<label class="radio-inline"><input type="radio" name="optradio" value="3" id="User">User</label>
 	</div>
 </div>
 <form method="post" id="readForm">
@@ -11,13 +11,13 @@
 		<div class="col-lg-4">
 			<div class="EPC-read input-group">
 				<span class="input-group-addon" id="basic-addon1">Word Start</span>
-				<input type="text" class="form-control"/>
+				<input type="text" class="form-control" id="WordStart" value="0"/>
 			</div>
 		</div>
 		<div class="col-lg-4">	
 				<div class="EPC-read input-group">
 					<span class="input-group-addon" id="basic-addon1">Word count</span>
-					<input type="text" class="form-control" placeholder=""/>
+					<input type="text" class="form-control" id="WordCnt" value="0" placeholder=""/>
 				</div>		
 		</div>
 	</div>
@@ -25,7 +25,7 @@
 		<div class="col-lg-10">
 				<div class="EPC-read input-group">
 					<span class="input-group-addon" id="basic-addon1">Access password</span>
-					<input type="text" class="form-control"/>
+					<input type="text" class="form-control" id="AcessPwd" value="0"/>
 					<div class="input-group-btn">
 						<button type="submit" class="btn btn-primary" id="readBtn">Read Data</button>
 					</div>
