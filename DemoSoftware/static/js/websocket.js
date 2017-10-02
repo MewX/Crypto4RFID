@@ -1,28 +1,9 @@
-		$(document).ready(function() {
-		    if (!window.console) window.console = {};
-		    if (!window.console.log) window.console.log = function() {};
-		    
-		    $("#pauseForm").on("submit", function() {
-		       window.ws.send(JSON.stringify("pause"));
-		        return false;
-		    });
-		    
-		    $("#resumeForm").on("submit", function() {
-		    	window.ws.send(JSON.stringify("resume"));
-		        return false;
-		    });
-		    
-		    $("#readForm").on("submit", function() {
-		    	window.ws.send(JSON.stringify("status"));
-		        return false;
-		    });
-		    
-		});
-
 		var tagAttributes = [ 'EPC-96', 'ROSpecID', 'SpecIndex',
 				'InventoryParameterSpecID', 'AntennaID', 'ChannelIndex',
 				'PeakRSSI', 'FirstSeenTimestampUTC', 'LastSeenTimestampUTC',
 				'TagSeenCount', 'AccessSpecID' ];
+		
+		var readTagAttributes = [ 'EPCvalue', 'read', 'memroybank'];
 		
 //		var buttonInfo = new Object();
 //		buttonInfo.resume = "";
@@ -47,9 +28,14 @@
 		}		
 		
 		function handleMessage(evt) {
-			var data = JSON.parse(evt.data), tags = data.tags, tbody = document
-					.getElementById('tagData'), rowData = '', i, tag, ai, row;
-
+			var data = JSON.parse(evt.data)
+				, tags = data.tags
+				, tbody = document.getElementById('tagData')
+				, tbody2 = document.getElementById('readData')
+				, rowData = ''
+				, readTags = data.readTags
+				, i, tag, ai, row, Readrow;
+			
 			for (i in tags) {
 				tag = tags[i];
 				row = document.getElementById(tag['EPC-96'])
@@ -60,10 +46,31 @@
 				}
 
 				rowData = ''
+				rowData += '<td><input type="checkbox" class="row-check"/></td>'
 				for (ai in tagAttributes) {
 					rowData += createCell(tag, tagAttributes[ai])
 				}
 				row.innerHTML = rowData;
+			}
+			
+			// read table
+			for (var j in readTags){
+				readTag = readTags[j];
+				Readrow = document.getElementById("read-" + readTag['EPCvalue'])
+				console.log(Readrow);
+				
+				if (!Readrow) {
+					Readrow = document.createElement("tr")
+					Readrow.id = "read-" + readTag['EPCvalue']
+					tbody2.appendChild(Readrow)
+				}
+				
+				var rowData2 = ''
+				
+				for (var aj in readTagAttributes) {
+					rowData2 += createCell(readTag, readTagAttributes[aj])
+				}
+				Readrow.innerHTML = rowData2;
 			}
 		}
 
@@ -76,7 +83,10 @@
 					|| attribute == 'LastSeenTimestampUTC') {
 				value = new Date(value / 1000).toLocaleString();
 			}
-
+			if (attribute == 'memroybank'){
+				value = $('input[name=optradio]:checked').attr('id');
+			}
+				
 //			if (attribute == "EPC-96") {
 //				return '<td><input type="text" value=' + value + '></td>';
 //			} else {}

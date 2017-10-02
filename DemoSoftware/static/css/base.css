@@ -2,6 +2,10 @@
 
 @import url(https://fonts.googleapis.com/css?family=Open+Sans:400italic,400,300,600);
 
+[hidden] {
+  display: none !important;
+}
+
 body {
 	font-family:"Open Sans", Helvetica, Arial, sans-serif;
 	font-weight:300;
@@ -19,7 +23,7 @@ body {
 }
 
 .table{
-	margin: 10px 0;
+	margin: 0px 0;
 }
 
 .table thead > tr > td {
@@ -32,10 +36,31 @@ body {
 	background-color: #fff;
 }
 
-.btn-group{
-	margin: 10px 15px 0;
-}
+
 
 .btn-group > form {
 	display: inline;
+}
+
+.row {
+	margin: 10px 10px 0;
+}
+
+.btn-group{
+	/* margin: 10px 15px 0; */
+}
+
+.file-upload{
+	/* margin: 10px 15px 0; */
+}
+.switch-field{
+	/* margin: 10px 15px 0; */
+}
+
+.memory-bank-label{
+	/* margin: 0 15px 0; */
+}
+
+.memroy-address{
+	/* margin: 0 15px 0; */
 }
