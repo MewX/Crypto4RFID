@@ -23,32 +23,26 @@ from sllurp.WControlModules import WiRead
 from sllurp.WModules import AccessSpecFactory as ASF, h2i, i2h
 
 '''
-Sllurp/Tornado Example
+Sllurp/Tornado
 This file contains an example showing how to use Sllurp with Tornado
 to update a web page via websockets when rfid tags are seen.
 '''
 
-fac                 = None
-proto               = None
-
-STATE_SHUTTINGDOWN     = -1
-STATE_INITIALIZING     =  0
-STATE_ACTIVE           =  1
-
-
 # WISP Control global variables.
 fac                 = None
-active_modules       = []
-programmingState    = STATE_INITIALIZING
+proto               = None
 tagReport = 0
 
-
 #parameters
-wordPtr = 0
-MB = 0
-accessPwd = 0
-wordCnt = 0
-writeData = ''
+wordCnt = '1600'
+accessType = ''
+accessId = 1;
+OCV = 1
+StopTrigger = 1
+OpSpecs = []
+OpSpecsIdx = 2
+
+
 
 logger = getLogger('Wsllurp')
 
@@ -113,14 +107,14 @@ class WebSocketHandler(WebSocketHandler):
                 logger.debug('attempting to send websocket message with no connected clients')
 
 def tag_seen_callback(llrpMsg):
+    
         """Function to run each time the reader reports seeing tags."""
-        global tagReport
+        global tagReport, accessId, OpSpecsIdx
         tags = llrpMsg.msgdict['RO_ACCESS_REPORT']['TagReportData']
         
         if tags:
             smokesignal.emit('rfid', {
-                'tags': tags,
-            })          
+                'tags': tags,})          
         
         if len(tags):
             for tag in tags:
@@ -130,13 +124,22 @@ def tag_seen_callback(llrpMsg):
                         logger.info('saw tag(s): {}'.format(pprint.pformat(tags)))
                         if ("ReadData" in tag["OpSpecResult"][ops]):
                             logger.info("Readdata = " + tag["OpSpecResult"][ops]["ReadData"])
+                            if (accessType == 'test') :
+                                print (OpSpecsIdx, OpSpecs.__len__())
+                                if(OpSpecsIdx < OpSpecs.__len__()):
+                                    accessId += 1
+                                    proto.nextAccessSpec(opSpecs = [OpSpecs[OpSpecsIdx], OpSpecs[OpSpecsIdx+1]],
+                                        accessSpec = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': StopTrigger, 'OperationCountValue': OCV,},})
+                                    OpSpecsIdx += 2
+                                
                             smokesignal.emit('rfid', {
                                 'readTags': [{'read' : tag["OpSpecResult"][ops]["ReadData"]
-                                            , 'EPCvalue' : tag["EPC-96"]}],
-                                }) 
-                            for ops in tags[0]["OpSpecResult"].values():
-                                if(ops["ReadData"][-2:] == "ff"):
-                                    polite_shutdown(fac)
+                                            , 'EPCvalue' : tag["EPC-96"]
+                                            , 'OpSpecId' : tag["OpSpecResult"][ops]["OpSpecID"] }],}) 
+#                             for ops in tags["OpSpecResult"].values():
+#                                 logger.info(ops["ReadData"]);
+#                                 if(ops["ReadData"][-2:] == "ff"):
+#                                     polite_shutdown(fac)
                 else:
                     logger.info('no tags seen')
                 return
@@ -176,56 +179,136 @@ def parse_args():
 
 #Reader Operation Control
 def reader_control(arg):
+    global accessType
+    accessType = arg['type']
     
-    argType = arg['type']
-    
-    if argType == 'resume':
+    if accessType == 'resume':
         fac.resumeInventory()
-    elif argType == 'pause':
+    elif accessType == 'pause':
         fac.pauseInventory()
-    elif argType == 'read':
+    elif accessType == 'read':
         access_memory(arg)
-    elif argType == 'write':
+    elif accessType == 'write':
         access_memory(arg)
-    elif argType == 'test':
+    elif accessType == 'test':
         access_memory(arg)
 #         fac.getProtocolStates()
-
-# if modules are finished, it will call this function.
-def module_finished_callback(module, parameter = None):
-    if(module in active_modules):
-        active_modules.remove(module)
-    if(parameter):
-        for p in parameter:
-            logger.info("{}".format(p))
 
 def polite_shutdown(factory):
     return factory.politeShutdown()
 
 def access_memory(arg):
-    for proto in fac.protocols: 
-        ReadWriteAccess(proto, arg)
- 
+    if(arg['type'] == 'test'):
+        for pto in fac.protocols: 
+            BlockReadAccess(pto, arg)
+    else :
+        for pto in fac.protocols: 
+            ReadWriteAccess(pto, arg)
 
-def BlockReadAccess(proto, arg):
-#     bytes_per_read = 0x20
-#     start_address = h2i('0x1900')
-#     end_address = h2i('0x1980')
-    writeSpecParam = {
-        'OpSpecID': 1,
+
+def getBlockWriteMessage(OpSpecID, content):
+    
+    hexContent = wordCnt + content
+    
+    write_message = {
+        'OpSpecID': OpSpecID,
         'MB': 3,
         'WordPtr': 0,
         'AccessPassword': 0,
-        'WriteDataWordCount': 3,
-        'WriteData': '\x19\x00',
-    #                 'WriteData': '\x30\x08\x33\xb2\xdd\xdd\x01\x41\x11\x11\x22\x22', # XXX allow user-defined pattern
+        'WriteDataWordCount': 2,
+        'WriteData': hexContent.decode('hex'),
     }
+    print (write_message)
+    return write_message 
+
+def getReadMessage(OpSpecID):
+    read_message = {
+        'OpSpecID': OpSpecID,
+        "MB": 3, # EPC = 1 user memory = 3
+        "WordPtr": 0,
+        "AccessPassword": 0,
+        "WordCount": wordCnt[:2],
+    }
+    print (read_message)
     
-    print writeSpecParam
+    return read_message 
+
+def BlockReadAccess(pto, arg):
     
-    return proto.startAccess(readWords=None,
-        writeWords=[writeSpecParam],accessStopParam = {'AccessSpecStopTriggerType': 1, 'OperationCountValue': 1,})        
-           
+    global OpSpecs, proto
+    proto =  pto
+    
+    bytes_per_read = 0x20
+    start_address = 0x1900
+    end_address = 0x1980
+    
+    cnt = 1
+    for i in range(start_address, end_address, bytes_per_read):
+        print(i2h(i))
+        OpSpecs.append(getBlockWriteMessage(cnt, i2h(i)))
+        OpSpecs.append(getReadMessage((cnt * 10) + 1))
+        cnt += 1
+        
+#     target = {
+#         "MB" : 1, # EPC = 1, userMem = 3
+#         "M": 1,
+#         "Pointer" : 32,
+#         "MaskBitCount": 16,
+#         "TagMask": "\xFF\xFF",#"\x00\xFF\xFF\x00",#\xFF\xFF\xFF\xFF",
+#         "DataBitCount": 16,#16*2,
+#         "TagData": "0b00".decode("hex"),#"\xF1\x65\x34\x00",  # \xF1\x65\x34\x00\x00\x34\xB0\x07" # tag 269 needs 34000269
+#     }        
+        
+#     writeSpecParam = {
+#         'OpSpecID': 1,
+#         'MB': 3,
+#         'WordPtr': 0,
+#         'AccessPassword': 0,
+#         'WriteDataWordCount': 2,
+#         'WriteData': '\x16\xCC\x00\x00',
+#     #                 'WriteData': '\x30\x08\x33\xb2\xdd\xdd\x01\x41\x11\x11\x22\x22', # XXX allow user-defined pattern
+#     }
+#      
+#     readSpecParam = {
+#         'OpSpecID': 11,
+#         "MB": 3, # EPC = 1 user memory = 3
+#         "WordPtr": 0,
+#         "AccessPassword": 0,
+#         "WordCount": 16,
+#     #                 'WriteData': '\x30\x08\x33\xb2\xdd\xdd\x01\x41\x11\x11\x22\x22', # XXX allow user-defined pattern
+#     }
+     
+    print OpSpecs[0]
+    print OpSpecs.__len__()
+     
+    proto.startAccessSpec(None, opSpecs = [OpSpecs[0], OpSpecs[1]],
+        accessSpecParams = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': StopTrigger, 'OperationCountValue': OCV,},})
+    
+#     OpSpecs = [];
+#     writeSpecParam = {
+#         'OpSpecID': 2,
+#         'MB': 3,
+#         'WordPtr': 0,
+#         'AccessPassword': 0,
+#         'WriteDataWordCount': 2,
+#         'WriteData': '\x16\xCC\x19\x00',
+#     #                 'WriteData': '\x30\x08\x33\xb2\xdd\xdd\x01\x41\x11\x11\x22\x22', # XXX allow user-defined pattern
+#     }
+#      
+#     readSpecParam = {
+#         'OpSpecID': 12,
+#         "MB": 3, # EPC = 1 user memory = 3
+#         "WordPtr": 0,
+#         "AccessPassword": 0,
+#         "WordCount": 16,
+#     #                 'WriteData': '\x30\x08\x33\xb2\xdd\xdd\x01\x41\x11\x11\x22\x22', # XXX allow user-defined pattern
+#     }  
+#      
+#     OpSpecs.append(writeSpecParam)
+#     OpSpecs.append(readSpecParam)
+     
+#     proto.nextAccessSpec(opSpecs = OpSpecs,
+#         accessSpec = {'ID':2, 'StopParam': {'AccessSpecStopTriggerType': 1, 'OperationCountValue': 1,},})
         
 def ReadWriteAccess(proto, arg):
     
@@ -260,7 +343,7 @@ def ReadWriteAccess(proto, arg):
             }
 #                 'WriteData': '\x30\x08\x33\xb2\xdd\xdd\x01\x41\x11\x11\x22\x22', # XXX allow user-defined pattern
         
-        print ("writeSpecParam : ", writeSpecParam)            
+        print ("writeSpecParam : ", writeSpecParam)
 #         return proto.startAccess(readWords=None,
 #                                 writeWords=writeSpecParam)  
         return proto.startAccess(readWords=None,
