@@ -34,7 +34,8 @@ proto               = None
 tagReport = 0
 
 #parameters
-wordCnt = '1600'
+bytes_per_read = 0x20
+wordCnt = str(int('{:02X}'.format(bytes_per_read)) - 4)
 accessType = ''
 accessId = 1;
 OCV = 1
@@ -124,18 +125,22 @@ def tag_seen_callback(llrpMsg):
                         logger.info('saw tag(s): {}'.format(pprint.pformat(tags)))
                         if ("ReadData" in tag["OpSpecResult"][ops]):
                             logger.info("Readdata = " + tag["OpSpecResult"][ops]["ReadData"])
-                            if (accessType == 'test') :
-                                print (OpSpecsIdx, OpSpecs.__len__())
-                                if(OpSpecsIdx < OpSpecs.__len__()):
+                            if (accessType == 'readWisp') :
+                                if(OpSpecsIdx < OpSpecs.__len__()) :
                                     accessId += 1
-                                    proto.nextAccessSpec(opSpecs = [OpSpecs[OpSpecsIdx], OpSpecs[OpSpecsIdx+1]],
-                                        accessSpec = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': StopTrigger, 'OperationCountValue': OCV,},})
+                                    proto.startAccessSpec(None, opSpecs = [OpSpecs[OpSpecsIdx], OpSpecs[OpSpecsIdx+1]],
+                                        accessSpecParams = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': StopTrigger, 'OperationCountValue': OCV,},})
                                     OpSpecsIdx += 2
-                                
-                            smokesignal.emit('rfid', {
-                                'readTags': [{'read' : tag["OpSpecResult"][ops]["ReadData"]
-                                            , 'EPCvalue' : tag["EPC-96"]
-                                            , 'OpSpecId' : tag["OpSpecResult"][ops]["OpSpecID"] }],}) 
+                                    
+                                smokesignal.emit('rfid', {
+                                    'readWispTags': [{'readWisp' : tag["OpSpecResult"][ops]["ReadData"]
+                                                      , 'EPCvalue' : tag["EPC-96"]
+                                                      , 'OpSpecId' : tag["OpSpecResult"][ops]["OpSpecID"] }],})                                     
+
+                            else :
+                                smokesignal.emit('rfid', {
+                                    'readTags': [{'read' : tag["OpSpecResult"][ops]["ReadData"]
+                                                , 'EPCvalue' : tag["EPC-96"] }],}) 
 #                             for ops in tags["OpSpecResult"].values():
 #                                 logger.info(ops["ReadData"]);
 #                                 if(ops["ReadData"][-2:] == "ff"):
@@ -186,19 +191,14 @@ def reader_control(arg):
         fac.resumeInventory()
     elif accessType == 'pause':
         fac.pauseInventory()
-    elif accessType == 'read':
+    else :
         access_memory(arg)
-    elif accessType == 'write':
-        access_memory(arg)
-    elif accessType == 'test':
-        access_memory(arg)
-#         fac.getProtocolStates()
 
 def polite_shutdown(factory):
     return factory.politeShutdown()
 
 def access_memory(arg):
-    if(arg['type'] == 'test'):
+    if(arg['type'] == 'readWisp'):
         for pto in fac.protocols: 
             BlockReadAccess(pto, arg)
     else :
@@ -207,8 +207,8 @@ def access_memory(arg):
 
 
 def getBlockWriteMessage(OpSpecID, content):
-    
-    hexContent = wordCnt + content
+    hexContent = wordCnt + '{:02X}'.format(bytes_per_read) + content
+    print ("hexContent ", hexContent)
     
     write_message = {
         'OpSpecID': OpSpecID,
@@ -227,7 +227,7 @@ def getReadMessage(OpSpecID):
         "MB": 3, # EPC = 1 user memory = 3
         "WordPtr": 0,
         "AccessPassword": 0,
-        "WordCount": wordCnt[:2],
+        "WordCount": wordCnt,
     }
     print (read_message)
     
@@ -238,13 +238,12 @@ def BlockReadAccess(pto, arg):
     global OpSpecs, proto
     proto =  pto
     
-    bytes_per_read = 0x20
-    start_address = 0x1900
-    end_address = 0x1980
-    
+    start_address = int(arg['startAddr'], 16)
+    end_address = int(arg['endAddr'], 16)
+    OpSpecs = []
     cnt = 1
     for i in range(start_address, end_address, bytes_per_read):
-        print(i2h(i))
+        print i2h(i)
         OpSpecs.append(getBlockWriteMessage(cnt, i2h(i)))
         OpSpecs.append(getReadMessage((cnt * 10) + 1))
         cnt += 1
@@ -266,7 +265,6 @@ def BlockReadAccess(pto, arg):
 #         'AccessPassword': 0,
 #         'WriteDataWordCount': 2,
 #         'WriteData': '\x16\xCC\x00\x00',
-#     #                 'WriteData': '\x30\x08\x33\xb2\xdd\xdd\x01\x41\x11\x11\x22\x22', # XXX allow user-defined pattern
 #     }
 #      
 #     readSpecParam = {
@@ -275,10 +273,8 @@ def BlockReadAccess(pto, arg):
 #         "WordPtr": 0,
 #         "AccessPassword": 0,
 #         "WordCount": 16,
-#     #                 'WriteData': '\x30\x08\x33\xb2\xdd\xdd\x01\x41\x11\x11\x22\x22', # XXX allow user-defined pattern
 #     }
      
-    print OpSpecs[0]
     print OpSpecs.__len__()
      
     proto.startAccessSpec(None, opSpecs = [OpSpecs[0], OpSpecs[1]],

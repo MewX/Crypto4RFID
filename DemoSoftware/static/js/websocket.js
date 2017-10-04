@@ -5,6 +5,8 @@
 		
 		var readTagAttributes = [ 'EPCvalue', 'read', 'memroybank'];
 		
+		var readWisTagAttributes = ['readWisp'];
+		
 //		var buttonInfo = new Object();
 //		buttonInfo.resume = "";
 //		buttonInfo.pause = "";
@@ -30,11 +32,17 @@
 		function handleMessage(evt) {
 			var data = JSON.parse(evt.data)
 				, tags = data.tags
+				, readTags = data.readTags
+				, readWispTags = data.readWispTags
 				, tbody = document.getElementById('tagData')
 				, tbody2 = document.getElementById('readData')
+				, tbody3 = document.getElementById('readWispData')
 				, rowData = ''
-				, readTags = data.readTags
-				, i, tag, ai, row, Readrow;
+				, readRowData = ''
+				, readWispRowData = ''
+				, i, tag, ai, row
+				, j, readTag, aj, Readrow
+				, k, readWipsTag, ak, ReadWispRow;
 			
 			for (i in tags) {
 				tag = tags[i];
@@ -54,10 +62,9 @@
 			}
 			
 			// read table
-			for (var j in readTags){
+			for (j in readTags){
 				readTag = readTags[j];
 				Readrow = document.getElementById("read-" + readTag['EPCvalue'])
-				console.log(Readrow);
 				
 				if (!Readrow) {
 					Readrow = document.createElement("tr")
@@ -65,13 +72,33 @@
 					tbody2.appendChild(Readrow)
 				}
 				
-				var rowData2 = ''
+				readRowData = ''
 				
-				for (var aj in readTagAttributes) {
-					rowData2 += createCell(readTag, readTagAttributes[aj])
+				for (aj in readTagAttributes) {
+					readRowData += createCell(readTag, readTagAttributes[aj])
 				}
-				Readrow.innerHTML = rowData2;
+				Readrow.innerHTML = readRowData;
 			}
+			
+			
+			// read Wisp table
+			for (k in readWispTags){
+				readWipsTag = readWispTags[k];
+				ReadWispRow = document.getElementById("readWisp-" + readWipsTag['EPCvalue'] + "-" + readWipsTag['OpSpecId'])
+				
+				if (!ReadWispRow) {
+					ReadWispRow = document.createElement("tr")
+					ReadWispRow.id = "readWisp-" + readWipsTag['EPCvalue'] + "-" + readWipsTag['OpSpecId']
+					tbody3.appendChild(ReadWispRow)
+				}
+				
+				readWispRowData = '';
+				for (ak in readWisTagAttributes) {
+					readWispRowData += createCell(readWipsTag, readWisTagAttributes[ak])
+				}
+				ReadWispRow.innerHTML = readWispRowData;
+			}			
+			
 		}
 
 		function createCell(tag, attribute) {
@@ -86,7 +113,7 @@
 			if (attribute == 'memroybank'){
 				value = $('input[name=optradio]:checked').attr('id');
 			}
-				
+			
 //			if (attribute == "EPC-96") {
 //				return '<td><input type="text" value=' + value + '></td>';
 //			} else {}

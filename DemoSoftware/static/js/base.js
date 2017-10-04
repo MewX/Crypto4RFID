@@ -64,6 +64,26 @@ $(document).ready(function() {
         	return false;
     });    
     
+    $("#readForm-wisp").on("submit", function() {
+    	
+    	var readWispBody = document.getElementById('readWispData');
+    	readWispBody.innerHTML = '';
+    	
+    	var startAddr = $("#user-StartAddr").val();
+    	var endAddr = $("#user-EndAddr").val();
+    	
+    	window.ws.send(JSON.stringify({"type":"readWisp"
+											, "startAddr": startAddr    										
+											, "endAddr": endAddr}));
+    	return false;
+    	
+    });
+    
+    $("#testForm").on("submit", function() {
+    	window.ws.send(JSON.stringify({"type":"test"}));
+        return false;
+    });    
+    
     $("#readEPCbtn").click(function(){
     	var row = $('table#inventory').find('tbody').find('tr');
     	var epcValue = "";
@@ -75,8 +95,11 @@ $(document).ready(function() {
     });
     
     $("#readBtn").click(function(){
-    	$("#readDiv").slideToggle("slow");
-//    	$("#readWispDiv").slideToggle("slow");
+    	if(mode){
+    		$("#readDiv").slideToggle("slow");
+    	}else{
+    		$("#readWispDiv").slideToggle("slow");
+    	}
     });
     
     $("#writeBtn").click(function(){
