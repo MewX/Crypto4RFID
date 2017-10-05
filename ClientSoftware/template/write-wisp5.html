@@ -1,22 +1,37 @@
-<div class="switch-field">
-	<label class="radio-inline"><input type="radio" name="writeopt_wips" id="User" value="3" checked>User</label>
-</div>
-<div class="col-xs-6">
-	<form method="post" id="writeForm-wisp"  >
-		<div class="EPC-write input-group">
-				<input type="text" class="form-control"  id="WriteData-wisp"/>
-			<div class="input-group-btn">
-				<button type="submit" class="btn btn-warning">Write</button>
-			</div>
-		</div>	
-	</form>
+<div class="write-data"  style="display:none;">	
+	<div class="switch-field">
+		<label class="radio-inline"><input type="radio" name="writeopt_wips" id="User" value="3" checked>User</label>
+	</div>
+	<div class="col-xs-6">
+		<form method="post" id="writeForm-wisp"  >
+			<div class="EPC-write input-group">
+					<input type="text" class="form-control"  id="WriteData-wisp"/>
+				<div class="input-group-btn">
+					<button type="submit" class="btn btn-warning">Write</button>
+				</div>
+			</div>	
+		</form>
+	</div>
 </div>
 
-<div class="file-upload" style="display:none;">
-	<div class="col-xs-6">
-		<input type="text" class="form-control" disabled/>
+<div class="file-upload">
+	<div class="row">
+	<form id="hexfile-upload" enctype="multipart/form-data" action="upload" method="POST">
+		<div class="col-lg-6 col-sm-6 col-12">
+			<div class="input-group">
+			<input type="text" class="form-control" readonly>
+			    <label class="input-group-btn">
+			        <span class="btn btn-info">
+			            Browse&hellip; <input id="hexfile-input" type="file" name="hexFile" style="display: none;" multiple required>
+			        </span>
+					<button class="btn btn-info" type="submit">Upload</button>
+			    </label>
+			</div>
+		</div>
+	</form>
+	<div class="col-lg-6 col-sm-6 col-12">
+		<div id="upload-status">
+		</div>
 	</div>
-	<label class="btn btn-default">
-		Binary File Upload <input type="file" hidden>
-	</label>
+	</div>
 </div>

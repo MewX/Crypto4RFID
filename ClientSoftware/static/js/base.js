@@ -79,10 +79,46 @@ $(document).ready(function() {
     	
     });
     
+    $("#hexfile-upload").on("submit", function(){
+	    	var formData = new FormData($(this)[0]);
+	    	$.ajax({
+	    		url: "/upload",
+	    		type: "POST",
+	    		data:formData,
+	    		contentType:false,
+	    		processData:false,
+	    		cache:false,
+	    		success:function(data){
+	    			var submitButton = '<span id="status" class="label label-default">'+ data +'</span><button class="btn btn-warning" type="submit">Start to Write</button>';
+	    			$("#upload-status").html(submitButton);
+	    		},
+	    		error:function(data){
+	    			$("#upload-status").html(data);
+	    		},
+	    		xhr:function(){
+	    			myXhr = $.ajaxSettings.xhr();
+	                if(myXhr.upload){
+	                    myXhr.upload.addEventListener('progress',handleProgress,false);
+	                	}
+	                return myXhr;
+	    		}
+	    	});
+	    	
+	    	$("#upload-status").html('File is being uploaded...');
+	    	return false
+    });
+    
+    handleProgress = function(evnt){
+        if(evnt.lengthComputable){
+            var ratio = (evnt.loaded / evnt.total) * 100;
+            $('progress').attr({value:ratio})
+        }
+    };
+    
     $("#testForm").on("submit", function() {
     	window.ws.send(JSON.stringify({"type":"test"}));
         return false;
-    });    
+    });
     
     $("#readEPCbtn").click(function(){
     	var row = $('table#inventory').find('tbody').find('tr');
@@ -109,4 +145,24 @@ $(document).ready(function() {
     		$("#writeWispDiv").slideToggle("slow");
     	}
     });
+    
+    $(':file').on('fileselect', function(event, numFiles, label) {
+        var input = $(this).parents('.input-group').find(':text'),
+            log = numFiles > 1 ? numFiles + ' files selected' : label;
+        if( input.length ) {
+            input.val(log);
+        } else {
+            if( log ) alert(log);
+        }
+
+    });
+    
+});
+
+// We can attach the `fileselect` event to all file inputs on the page
+$(document).on('change', ':file', function() {
+  var input = $(this),
+      numFiles = input.get(0).files ? input.get(0).files.length : 1,
+      label = input.val().replace(/\\/g, '/').replace(/.*\//, '');
+  input.trigger('fileselect', [numFiles, label]);
 });

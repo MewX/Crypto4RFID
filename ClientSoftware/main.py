@@ -72,6 +72,15 @@ class BaseHandler(RequestHandler):
     def get(self):
         self.render("base.html")
 
+class UploadFileHandler(RequestHandler):
+    def post(self):
+        file_dir = os.path.dirname(__file__) + '/static/files'
+        hex_file = open(os.path.join(file_dir,self.request.files["hexFile"][0].filename),"w")
+        hex_file.write(self.request.files["hexFile"][0].body)
+        hex_file.close;
+        self.write("Success!")
+        
+
 class WebSocketHandler(WebSocketHandler):
     def __init__(self, *args, **kwargs):
         super(WebSocketHandler, self).__init__(*args, **kwargs)
@@ -127,9 +136,15 @@ def tag_seen_callback(llrpMsg):
                             logger.info("Readdata = " + tag["OpSpecResult"][ops]["ReadData"])
                             if (accessType == 'readWisp') :
                                 if(OpSpecsIdx < OpSpecs.__len__()) :
+                                    logger.info("ReadWisp : ")
                                     accessId += 1
-                                    proto.startAccessSpec(None, opSpecs = [OpSpecs[OpSpecsIdx], OpSpecs[OpSpecsIdx+1]],
-                                        accessSpecParams = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': StopTrigger, 'OperationCountValue': OCV,},})
+                                    infinite_spec = {'AccessSpecStopTriggerType': 1, 'OperationCountValue': 1,}
+                                    fac.nextAccess(readParam=OpSpecs[OpSpecsIdx+1], writeParam=OpSpecs[OpSpecsIdx], stopParam=infinite_spec, accessSpecID = accessId)
+                                    
+#                                     proto.startAccessSpec(None, opSpecs = [OpSpecs[OpSpecsIdx], OpSpecs[OpSpecsIdx+1]],
+#                                         accessSpecParams = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': StopTrigger, 'OperationCountValue': OCV,},})
+#                                     fac.nextAccessSpec(opSpecs = [OpSpecs[OpSpecsIdx], OpSpecs[OpSpecsIdx+1]], 
+#                                         accessSpec = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': 1, 'OperationCountValue': 1,},})
                                     OpSpecsIdx += 2
                                     
                                 smokesignal.emit('rfid', {
@@ -279,7 +294,7 @@ def BlockReadAccess(pto, arg):
      
     proto.startAccessSpec(None, opSpecs = [OpSpecs[0], OpSpecs[1]],
         accessSpecParams = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': StopTrigger, 'OperationCountValue': OCV,},})
-    
+
 #     OpSpecs = [];
 #     writeSpecParam = {
 #         'OpSpecID': 2,
@@ -367,6 +382,7 @@ if __name__ == '__main__':
 
     application = Application([(r"/", BaseHandler)
                               , (r"/ws", WebSocketHandler)
+                              , (r"/upload", UploadFileHandler)
 #                               , (r"/pause", PauseHandler)
 #                               , (r"/resume", ResumeHandler)
                               ], **settings)
