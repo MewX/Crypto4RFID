@@ -3,7 +3,7 @@
 		<label class="radio-inline"><input type="radio" name="writeopt_wips" id="User" value="3" checked>User</label>
 	</div>
 	<div class="col-xs-6">
-		<form method="post" id="writeForm-wisp"  >
+		<form method="post" id="writeForm-epc-wisp"  >
 			<div class="EPC-write input-group">
 					<input type="text" class="form-control"  id="WriteData-wisp"/>
 				<div class="input-group-btn">
@@ -22,16 +22,30 @@
 			<input type="text" class="form-control" readonly>
 			    <label class="input-group-btn">
 			        <span class="btn btn-info">
-			            Browse&hellip; <input id="hexfile-input" type="file" name="hexFile" style="display: none;" multiple required>
+			            Browse&hellip; <input id="hexfile-input" type="file" name="hexFile" style="display: none;" required>
 			        </span>
-					<button class="btn btn-info" type="submit">Upload</button>
+					<button class="btn btn-success" type="submit">Upload</button>
 			    </label>
 			</div>
 		</div>
 	</form>
 	<div class="col-lg-6 col-sm-6 col-12">
-		<div id="upload-status">
-		</div>
+		<form method="post" id="writeForm-wisp">
+			<div id="upload-status"></div>
+		</form>
 	</div>
 	</div>
 </div>
+	<div class="row">
+		<div class="table-responsive" style="margin: 0 15px;">	
+			<table class="table table-bordered" id="write">
+				<thead>
+					<tr>
+						<td>WriteData</td>
+						<td>Status</td>
+					</tr>
+				</thead>
+				<tbody id="writeWispData"></tbody>
+			</table>
+		</div>	
+	</div>
