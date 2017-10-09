@@ -4,6 +4,8 @@ from joblib.logger import pformat
 import binascii
 import pprint
 import sllurp
+import logging
+from cv2 import line
 sys.path.append(os.path.abspath(os.path.join(__file__, '..', '..', '..')))
 
 from argparse import ArgumentParser
@@ -31,41 +33,55 @@ to update a web page via websockets when rfid tags are seen.
 # WISP Control global variables.
 fac                 = None
 proto               = None
-tagReport = 0
+tagReport           = 0
 
 #parameters
-bytes_per_read = 0x20
-wordCnt = str(int('{:02X}'.format(bytes_per_read)) - 4)
-accessType = ''
-accessId = 1;
-OCV = 1
-StopTrigger = 1
-OpSpecs = []
-OpSpecsIdx = 2
+bytes_per_read      = 0x20
+wordCnt             = str(int('{:02X}'.format(bytes_per_read)) - 4)
+AccssSpecType       = 0x1F              # 1F is reading WISP otherwise writing WISP
+accessType          = ''
+accessId            = 1
+OCV                 = 1
+StopTrigger         = 1
+OpSpecs             = []
+OpSpecsIdx          = 2
+writeIdx            = 0
 
+logger              = getLogger('Wsllurp')
 
+startTime           = 0.0
+endTime             = 0.0
 
-logger = getLogger('Wsllurp')
+# The Intel Hex file.
+hexfile             = None
+lines               = None
+current_line        = None
+index               = 0
 
-def setup_logging():
-    logger.setLevel(INFO)
+T                              = [1,2,3,4,6,8,16]  # Set of allowed values for S_p after throttle.
+
+def startTimeMeasurement():
+    global startTime
+    startTime = time.time()
+
+def getTimeMeasurement():
+    global endTime
+    endTime = time.time()
+    return (endTime - startTime)
+
+def init_logging():
+    
+    logLevel = logging.INFO
     logFormat = '%(asctime)s %(name)s: %(levelname)s: %(message)s'
-    formatter = Formatter(logFormat)
-    handler = StreamHandler()
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
+    formatter = logging.Formatter(logFormat)
+    stderr = logging.StreamHandler()
+    stderr.setFormatter(formatter)
 
-    stream_handler_warn = StreamHandler()
-    stream_handler_warn.setLevel(WARN)
-    stream_handler_warn.setFormatter(formatter)
+    root = logging.getLogger()
+    root.setLevel(logLevel)
+    root.handlers = [stderr]
 
-    access_log = getLogger("tornado.access")
-    access_log.addHandler(stream_handler_warn)
-    app_log = getLogger("tornado.application")
-    app_log.addHandler(handler)
-
-    gen_log = getLogger("tornado.general")
-    gen_log.addHandler(handler)
+    logger.log(logLevel, 'log level: %s', logging.getLevelName(logLevel))
 
 
 class BaseHandler(RequestHandler):
@@ -74,12 +90,11 @@ class BaseHandler(RequestHandler):
 
 class UploadFileHandler(RequestHandler):
     def post(self):
-        file_dir = os.path.dirname(__file__) + '/static/files'
-        hex_file = open(os.path.join(file_dir,self.request.files["hexFile"][0].filename),"w")
-        hex_file.write(self.request.files["hexFile"][0].body)
-        hex_file.close;
-        self.write("Success!")
-        
+        hexfile_dir         = os.path.dirname(__file__) + '/static/files/' + self.request.files["hexFile"][0].filename
+        hexfile             = open(hexfile_dir,"w")
+        hexfile.write(self.request.files["hexFile"][0].body)
+        hexfile.close;
+        self.write("Success!: " + self.request.files["hexFile"][0].filename)
 
 class WebSocketHandler(WebSocketHandler):
     def __init__(self, *args, **kwargs):
@@ -133,18 +148,16 @@ def tag_seen_callback(llrpMsg):
                     for ops in tag["OpSpecResult"]:
                         logger.info('saw tag(s): {}'.format(pprint.pformat(tags)))
                         if ("ReadData" in tag["OpSpecResult"][ops]):
-                            logger.info("Readdata = " + tag["OpSpecResult"][ops]["ReadData"])
+                            logger.info("Readdata = " + tag["OpSpecResult"][ops]["ReadData"] + " accessType :" + accessType)
+                            
                             if (accessType == 'readWisp') :
+                                # AsscessSpec Reading message for WISP5
+                                logger.info("OpSpecsIdx : " + str(OpSpecsIdx) + " OpSpecs.__len__(): " + str(OpSpecs.__len__()) )
                                 if(OpSpecsIdx < OpSpecs.__len__()) :
                                     logger.info("ReadWisp : ")
                                     accessId += 1
-                                    infinite_spec = {'AccessSpecStopTriggerType': 1, 'OperationCountValue': 1,}
-                                    fac.nextAccess(readParam=OpSpecs[OpSpecsIdx+1], writeParam=OpSpecs[OpSpecsIdx], stopParam=infinite_spec, accessSpecID = accessId)
-                                    
-#                                     proto.startAccessSpec(None, opSpecs = [OpSpecs[OpSpecsIdx], OpSpecs[OpSpecsIdx+1]],
-#                                         accessSpecParams = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': StopTrigger, 'OperationCountValue': OCV,},})
-#                                     fac.nextAccessSpec(opSpecs = [OpSpecs[OpSpecsIdx], OpSpecs[OpSpecsIdx+1]], 
-#                                         accessSpec = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': 1, 'OperationCountValue': 1,},})
+                                    fac.nextAccessSpec(opSpecs = [OpSpecs[OpSpecsIdx], OpSpecs[OpSpecsIdx+1]], 
+                                        accessSpec = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': 1, 'OperationCountValue': 1,},})
                                     OpSpecsIdx += 2
                                     
                                 smokesignal.emit('rfid', {
@@ -152,38 +165,43 @@ def tag_seen_callback(llrpMsg):
                                                       , 'EPCvalue' : tag["EPC-96"]
                                                       , 'OpSpecId' : tag["OpSpecResult"][ops]["OpSpecID"] }],})                                     
 
+                            elif (accessType == 'writeWisp') :
+                                # AsscessSpec Writing message for WISP5
+                                logger.info("index : " + str(index) + " Line size: " + str(len(lines)))
+
+                                if (index == len(lines)-1):
+                                    logger.info(" EOF reached.")
+                                else:
+                                    logger.info("WriteWisp : " + str(index))
+                                    accessId += 1
+                                    index += 1                                    
+#                                     fac.nextAccessSpec(opSpecs = [OpSpecs[index]], 
+#                                         accessSpec = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': 1, 'OperationCountValue': 1,},})
+                                
                             else :
+                                # Result for Normal tags
                                 smokesignal.emit('rfid', {
                                     'readTags': [{'read' : tag["OpSpecResult"][ops]["ReadData"]
-                                                , 'EPCvalue' : tag["EPC-96"] }],}) 
-#                             for ops in tags["OpSpecResult"].values():
-#                                 logger.info(ops["ReadData"]);
-#                                 if(ops["ReadData"][-2:] == "ff"):
-#                                     polite_shutdown(fac)
+                                                , 'EPCvalue' : tag["EPC-96"] }],})
+                                
+                                
+                        elif(0 == tag["OpSpecResult"][ops]["NumWordsWritten"]):
+                            if (accessType == 'readWisp') :
+                                OpSpecsIdx -= 2
+                                fac.nextAccessSpec(opSpecs = [OpSpecs[OpSpecsIdx], OpSpecs[OpSpecsIdx+1]], 
+                                    accessSpec = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': 1, 'OperationCountValue': 1,},})
+                                OpSpecsIdx += 2
+                            elif(accessType == 'writeWisp'):
+                                print 'testWriteWisp'
+                                
+                                
+                        print getTimeMeasurement()
                 else:
                     logger.info('no tags seen')
                 return
             for tag in tags:
                 tagReport += tag['TagSeenCount'][0]       
-
-#         if tags:
-#             smokesignal.emit('rfid', {
-#                 'tags': tags,
-#             })            
-#         for tag in tags:
-#             if "OpSpecResult" in tag:
-#                 data = tag["OpSpecResult"].get("ReadData")
-#                 print ('OpSpecResult : ', data)
-#                 if data:
-#                     if sys.version_info.major < 3:
-#                         sys.stdout.write(data)
-#                     else:
-#                         sys.stdout.buffer.write(data)                     # bytes
-#                     logger.debug("hex data: %s", binascii.hexlify(data))                    
-                
-
-            
-
+        
 def parse_args():
     parser = ArgumentParser(description='Simple RFID Reader Inventory')
     parser.add_argument('host', help='hostname or IP address of RFID reader', nargs='*')
@@ -216,24 +234,24 @@ def access_memory(arg):
     if(arg['type'] == 'readWisp'):
         for pto in fac.protocols: 
             BlockReadAccess(pto, arg)
+    elif(arg['type'] == 'writeWisp'):
+        for pto in fac.protocols: 
+            BlockWriteAccess(pto, arg)   
     else :
         for pto in fac.protocols: 
             ReadWriteAccess(pto, arg)
 
 
-def getBlockWriteMessage(OpSpecID, content):
-    hexContent = wordCnt + '{:02X}'.format(bytes_per_read) + content
-    print ("hexContent ", hexContent)
+def getBlockWriteMessage(OpSpecID, count, content):
     
     write_message = {
         'OpSpecID': OpSpecID,
         'MB': 3,
         'WordPtr': 0,
         'AccessPassword': 0,
-        'WriteDataWordCount': 2,
-        'WriteData': hexContent.decode('hex'),
+        'WriteDataWordCount': count,
+        'WriteData': content.decode('hex'),
     }
-    print (write_message)
     return write_message 
 
 def getReadMessage(OpSpecID):
@@ -248,18 +266,49 @@ def getReadMessage(OpSpecID):
     
     return read_message 
 
+def BlockWriteAccess(pto, arg):
+    global hexfile, OpSpecs, proto, index, accessId
+    
+    proto       = pto
+    dir         = os.path.dirname(__file__) + '/static/files/'
+    hexfile     = open(dir + arg['file'], 'r')
+    lines       = hexfile.readlines()
+    
+    total_words_to_send = 0
+    accessId            = 1
+    index               = 0
+    OpSpecs             = []
+    
+    for i in range(0,len(lines)-1):
+        total_words_to_send = total_words_to_send + ((len(lines[i]) - 12)/4)
+        datCnt = lines[i][1:3]
+        writeData = "{:02d}".format(int(datCnt) + 1) + datCnt + lines[i][3:7] + lines[i][9:(len(lines[i])-3)]
+        writeData += calcChecksum(writeData)
+        print ("writeData : ", writeData)
+        if(datCnt != '00') :
+            OpSpecs.append(getBlockWriteMessage(i, len(writeData) / 4, writeData))
+    
+    logger.info('Bytes to send: ' + str(total_words_to_send*2))
+    print OpSpecs[index]
+    return proto.startAccess(readWords=None,
+        writeWords=[OpSpecs[index]], accessStopParam = {'AccessSpecStopTriggerType': 1, 'OperationCountValue': 5,})
+
 def BlockReadAccess(pto, arg):
     
-    global OpSpecs, proto
-    proto =  pto
+    global OpSpecs, proto, OpSpecsIdx, accessId
+    proto           =  pto
+    OpSpecsIdx      = 2
+    accessId        = 1
     
-    start_address = int(arg['startAddr'], 16)
-    end_address = int(arg['endAddr'], 16)
-    OpSpecs = []
-    cnt = 1
+    start_address   = int(arg['startAddr'], 16)
+    end_address     = int(arg['endAddr'], 16)
+    OpSpecs         = []
+    cnt             = 1
+    
     for i in range(start_address, end_address, bytes_per_read):
-        print i2h(i)
-        OpSpecs.append(getBlockWriteMessage(cnt, i2h(i)))
+        hexContent = AccssSpecType + wordCnt + i2h(i)
+        print ("hexContent  : ", hexContent)
+        OpSpecs.append(getBlockWriteMessage(cnt, 2, hexContent))
         OpSpecs.append(getReadMessage((cnt * 10) + 1))
         cnt += 1
         
@@ -290,7 +339,7 @@ def BlockReadAccess(pto, arg):
 #         "WordCount": 16,
 #     }
      
-    print OpSpecs.__len__()
+    startTimeMeasurement()
      
     proto.startAccessSpec(None, opSpecs = [OpSpecs[0], OpSpecs[1]],
         accessSpecParams = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': StopTrigger, 'OperationCountValue': OCV,},})
@@ -323,12 +372,12 @@ def BlockReadAccess(pto, arg):
         
 def ReadWriteAccess(proto, arg):
     
-    start = time.time()
-    
-    readSpecParam = None
-    writeSpecParam = None
+    readSpecParam       = None
+    writeSpecParam      = None
     
     print i2h(int(arg['wordPtr']))
+    
+    startTimeMeasurement()
     
     if (arg['type'] == 'read'):
         readSpecParam = {
@@ -365,10 +414,11 @@ def calcChecksum(stork_message):
     for i in range(0, len(stork_message),2):
         checksum += int("0x"+ stork_message[i:i+2], 0)
     checksum = checksum % 256
-    return "{:02x}".format(checksum)
+    return "{:04x}".format(checksum)
 
 if __name__ == '__main__':
-    setup_logging()
+    
+    init_logging()
     # Set up tornado to use reactor
     TwistedIOLoop().install()
     
@@ -377,8 +427,6 @@ if __name__ == '__main__':
                 "static_path" : os.path.join(os.path.dirname(__file__), "static"),
                 "template_path" : os.path.join(os.path.dirname(__file__), "template")
                 }
-
-    print os.path.join(os.path.dirname(__file__), "static")
 
     application = Application([(r"/", BaseHandler)
                               , (r"/ws", WebSocketHandler)
@@ -419,7 +467,6 @@ if __name__ == '__main__':
     for host in args.host:
         reactor.connectTCP(host, args.port, fac, timeout=3) #@UndefinedVariable
         
-#     fac.addStateCallback(LLRPClient.STATE_INVENTORYING, readAccess)
     reactor.addSystemEventTrigger('before', 'shutdown', polite_shutdown, fac) #@UndefinedVariable
  
     # Start server & connect to readers
