@@ -83,13 +83,12 @@ void speck_decrypt_combined(SPECK_TYPE const ct[2], SPECK_TYPE pt[2], SPECK_TYPE
 
 int main(int argc, char** argv)
 {
-    // Stop WatchDog during initialization
-    WDTCTL = WDTPW + WDTHOLD;
+    WDTCTL = WDTPW | WDTHOLD;   // Stop watchdog timer
+    PM5CTL0 &= ~LOCKLPM5;       // Lock LPM5.
 
 #ifdef SPECK_64_128
   uint32_t key[4] = {0x03020100, 0x0b0a0908, 0x13121110, 0x1b1a1918};
-  uint32_t plain[2] = {0x7475432d, 0x3b726574};
-  uint32_t enc[2] = {0x454e028b, 0x8c6fa548};
+  uint32_t enc[2] = {0x3b726574, 0x7475432d};
 #endif
 
   SPECK_TYPE buffer[2] = {0};

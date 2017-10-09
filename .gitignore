@@ -3,3 +3,7 @@ Debug/
 Release/
 *.out
 *.bc
+*.exe
+*.o
+*.swp
+

@@ -166,8 +166,8 @@ typedef uint16_t u16;
 
 int main()
 {
-    // Stop WatchDog during initialization
-    WDTCTL = WDTPW + WDTHOLD;
+    WDTCTL = WDTPW | WDTHOLD;   // Stop watchdog timer
+    PM5CTL0 &= ~LOCKLPM5;       // Lock LPM5.
 
     u16 i;
     u16 state[2*NB];

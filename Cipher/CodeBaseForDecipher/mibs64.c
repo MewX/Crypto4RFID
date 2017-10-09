@@ -127,8 +127,8 @@ void __attribute__ ((noinline)) Decrypt(u8 *state, u8 *key)
 
 int main(void)
 {
-  // Stop WatchDog during initialization
-  WDTCTL = WDTPW + WDTHOLD;
+    WDTCTL = WDTPW | WDTHOLD;   // Stop watchdog timer
+    PM5CTL0 &= ~LOCKLPM5;       // Lock LPM5.
 
   // Input values
   //u8 state[8]={0xfe, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
