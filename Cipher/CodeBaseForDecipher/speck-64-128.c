@@ -88,8 +88,7 @@ int main(int argc, char** argv)
 
 #ifdef SPECK_64_128
   uint32_t key[4] = {0x03020100, 0x0b0a0908, 0x13121110, 0x1b1a1918};
-  uint32_t plain[2] = {0x7475432d, 0x3b726574};
-  uint32_t enc[2] = {0x454e028b, 0x8c6fa548};
+  uint32_t enc[2] = {0x3b726574, 0x7475432d};
 #endif
 
   SPECK_TYPE buffer[2] = {0};
