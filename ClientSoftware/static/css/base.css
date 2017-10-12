@@ -29,11 +29,13 @@ body {
 .table thead > tr > td {
 	color : #333;
 	background-color: #fff;
+	border-bottom: 2px solid #eeeeec;
 }
 
 .table tbody tr > td {
 	color : #333;
 	background-color: #fff;
+	border-top: none !important;
 }
 
 

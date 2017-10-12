@@ -4,8 +4,8 @@
 				'TagSeenCount', 'AccessSpecID' ];
 		
 		var readTagAttributes = [ 'EPCvalue', 'read', 'memroybank'];
-		
 		var readWisTagAttributes = ['readWisp'];
+		var writeWisTagAttributes = ['writeWisp', 'status'];
 		
 //		var buttonInfo = new Object();
 //		buttonInfo.resume = "";
@@ -34,15 +34,19 @@
 				, tags = data.tags
 				, readTags = data.readTags
 				, readWispTags = data.readWispTags
+				, writeWispTags = data.writeWispTags
 				, tbody = document.getElementById('tagData')
 				, tbody2 = document.getElementById('readData')
 				, tbody3 = document.getElementById('readWispData')
+				, tbody4 = document.getElementById('writeWispData')
 				, rowData = ''
 				, readRowData = ''
 				, readWispRowData = ''
+				, writeWispRowData = ''
 				, i, tag, ai, row
 				, j, readTag, aj, Readrow
-				, k, readWipsTag, ak, ReadWispRow;
+				, k, readWipsTag, ak, ReadWispRow
+				, x, writeWipsTag, ax, WriteWispRow;
 			
 			for (i in tags) {
 				tag = tags[i];
@@ -97,7 +101,25 @@
 					readWispRowData += createCell(readWipsTag, readWisTagAttributes[ak])
 				}
 				ReadWispRow.innerHTML = readWispRowData;
-			}			
+			}	
+			
+			// write data Wisp table
+			for (x in writeWispTags){
+				writeWipsTag = writeWispTags[x];
+				WriteWispRow = document.getElementById("writeWisp-" + writeWipsTag['EPCvalue'] + "-" + writeWipsTag['writeWisp'])
+				
+				if (!WriteWispRow) {
+					WriteWispRow = document.createElement("tr")
+					WriteWispRow.id = "writeWisp-" + writeWipsTag['EPCvalue'] + "-" + writeWipsTag['writeWisp']
+					tbody4.appendChild(WriteWispRow)
+				}
+				
+				writeWispRowData = '';
+				for (ax in writeWisTagAttributes) {
+					writeWispRowData += createCell(writeWipsTag, writeWisTagAttributes[ax])
+				}
+				WriteWispRow.innerHTML = writeWispRowData;
+			}
 			
 		}
 

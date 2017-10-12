@@ -47,21 +47,10 @@ $(document).ready(function() {
     });
 
     $("#writeForm-wisp").on("submit", function() {
-        	var MB = "3";
-        	var WordSta = "0";
-        	var WordCnt = ($('#WriteData-wisp').val().length)/4;
-//        	var WordCnt = "2";
-        	var AcessPwd = "0";
-        	var WriteData = $('#WriteData-wisp').val();
-        	
-        	window.ws.send(JSON.stringify({"type":"write"
-        										, "MB": MB
-        										, "wordPtr": WordSta    										
-        										, "accessPwd": AcessPwd  
-        										, "wordCnt": WordCnt    										
-        										, "writeData": WriteData}));    	
-        	window.location = "/";
-        	return false;
+    	var fileName = $("#status").text().split(": ");
+    	window.ws.send(JSON.stringify({"type":"writeWisp"
+    										, "file": fileName[1]}));
+    	return false;
     });    
     
     $("#readForm-wisp").on("submit", function() {
@@ -89,7 +78,9 @@ $(document).ready(function() {
 	    		processData:false,
 	    		cache:false,
 	    		success:function(data){
-	    			var submitButton = '<span id="status" class="label label-default">'+ data +'</span><button class="btn btn-warning" type="submit">Start to Write</button>';
+	    			var submitButton = '<span id="status" class="label label-default">'
+	    								+ data 
+	    								+'</span><button class="btn btn-warning" type="submit">Start to Write</button>';
 	    			$("#upload-status").html(submitButton);
 	    		},
 	    		error:function(data){
