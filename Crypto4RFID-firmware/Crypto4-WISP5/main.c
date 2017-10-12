@@ -32,14 +32,7 @@ void my_ackCallback (void) {
  *
  */
 void my_readCallback (void) {
-
-//    // read Data
-//    wispData.readBufPtr[0] = 0xa1;
-//    wispData.readBufPtr[1] = 0x68;
-//    wispData.readBufPtr[2] = 0x99;
-//    wispData.readBufPtr[3] = 0x38;
-//    wispData.readBufPtr[4] = 0xDD;
-
+    asm(" NOP");
 }
 
 /**
@@ -48,12 +41,7 @@ void my_readCallback (void) {
  *
  */
 void my_writeCallback (void) {
-
-    // Acknowledge the message.
-//    wispData.epcBuf[2] = (wispData.writeBufPtr[0] >> 8)  & 0xFF;
-//    wispData.epcBuf[3] = (wispData.writeBufPtr[0])  & 0xFF;
-//    wispData.epcBuf[4] = (wispData.writeBufPtr[1] >> 8)  & 0xFF;
-//    wispData.epcBuf[5] = (wispData.writeBufPtr[1])  & 0xFF;
+    asm(" NOP");
 }
 
 /** 
@@ -63,100 +51,44 @@ void my_writeCallback (void) {
  */
 void my_blockWriteCallback  (void) {
 
-    (* (uint16_t *) (0x1900)) = 0xB007;
-    (* (uint16_t *) (0x1902)) = 0xABCD;
-    (* (uint16_t *) (0x1904)) = 0xCCCC;
-    (* (uint16_t *) (0x1906)) = 0xCCCC;
-    (* (uint16_t *) (0x1908)) = 0x3333;
-    (* (uint16_t *) (0x190a)) = 0x4444;
-    (* (uint16_t *) (0x190c)) = 0x5555;
-    (* (uint16_t *) (0x190e)) = 0xCCCC;
-    (* (uint16_t *) (0x1910)) = 0xDDDD;
-    (* (uint16_t *) (0x1912)) = 0xaaaa;
-    (* (uint16_t *) (0x1914)) = 0x4444;
-    (* (uint16_t *) (0x1916)) = 0xbbbb;
-    (* (uint16_t *) (0x1918)) = 0xcccc;
-    (* (uint16_t *) (0x191a)) = 0xdddd;
-    (* (uint16_t *) (0x191c)) = 0xaaaa;
-    (* (uint16_t *) (0x191e)) = 0x0000;
+    uint8_t word_count      = (wispData.blockWriteBufPtr[0] >> 8)  & 0xFF;
+    uint16_t address        = wispData.blockWriteBufPtr[1];
 
-    uint8_t offset          = 0x00;
-    uint8_t i               = 0;
+    if (word_count == 0x1F){
+        uint8_t offset          = 0x00;
+        uint8_t i               = 0;
 
-    uint8_t word_count = (wispData.blockWriteBufPtr[0] >> 8)  & 0xFF;
-    uint8_t size = (wispData.blockWriteBufPtr[0])  & 0xFF;
-    uint16_t address = wispData.blockWriteBufPtr[1];
+        for (i = 0; i < 32; i+=2){
+            wispData.readBufPtr[i] = ((* (uint16_t *) (address + (offset<<1))) >> 8)  & 0xFF;
+            offset++;
+        }
 
-    word_count = word_count * 2;
+        offset                  = 0x00;
+        for (i = 1; i < 32; i+=2){
+            wispData.readBufPtr[i] = ((* (uint16_t *) (address + (offset<<1))))  & 0xFF;
+            offset++;
+        }
+    }else {
+        uint8_t size            = (wispData.blockWriteBufPtr[0])  & 0xFF;
+        uint8_t checksum        = (wispData.blockWriteBufPtr[word_count]) & 0xFF;
+        uint8_t calcsum         = 0x00;
+        uint8_t offset          = 0x00;
 
-    for (i = 0; i < 32; i+=2){
-        wispData.readBufPtr[i] = ((* (uint16_t *) (address + (offset<<1))) >> 8)  & 0xFF;
-        offset++;
+        // Calculate checksum.
+        for (offset = word_count; offset > 0; offset--) {
+            calcsum += (wispData.blockWriteBufPtr[offset-1] >> 8) & 0xff;
+            calcsum += wispData.blockWriteBufPtr[offset-1] & 0xff;
+        }
+
+        if(checksum == calcsum){
+            for(offset = 0x00; offset < size; offset+= 0x02){
+                (* (uint16_t *) (address + offset)) =
+                        ((wispData.blockWriteBufPtr[2 + (offset >> 1)] & 0xff) << 8)
+                        | ((wispData.blockWriteBufPtr[2 + (offset >> 1)] & 0xff00) >> 8);
+            }
+        }
     }
 
-    offset = 0x00;
-    for (i = 1; i < 32; i+=2){
-        wispData.readBufPtr[i] = ((* (uint16_t *) (address + (offset<<1))))  & 0xFF;
-        offset++;
-    }
-
-
-//
-//    wispData.readBufPtr[0] = ((* (uint16_t *) (address+0)) >> 8)  & 0xFF;
-//    wispData.readBufPtr[1] = ((* (uint16_t *) (address+0)))  & 0xFF;
-//    wispData.readBufPtr[2] = ((* (uint16_t *) (address+1)) >> 8)  & 0xFF;
-//    wispData.readBufPtr[3] = ((* (uint16_t *) (address+1)))  & 0xFF;
-//    wispData.readBufPtr[4] = ((* (uint16_t *) (address+2)) >> 8)  & 0xFF;
-//    wispData.readBufPtr[5] = ((* (uint16_t *) (address+2)))  & 0xFF;
-//    wispData.readBufPtr[6] = ((* (uint16_t *) (address+3)) >> 8)  & 0xFF;
-//    wispData.readBufPtr[7] = ((* (uint16_t *) (address+3)))  & 0xFF;
-//    wispData.readBufPtr[8] = ((* (uint16_t *) (address+4)) >> 8)  & 0xFF;
-//    wispData.readBufPtr[9] = ((* (uint16_t *) (address+4)))  & 0xFF;
-//    wispData.readBufPtr[10] = ((* (uint16_t *) (address+5)) >> 8)  & 0xFF;
-//    wispData.readBufPtr[11] = ((* (uint16_t *) (address+5)))  & 0xFF;
-//    wispData.readBufPtr[12] = ((* (uint16_t *) (address+6)) >> 8)  & 0xFF;
-//    wispData.readBufPtr[13] = ((* (uint16_t *) (address+6)))  & 0xFF;
-//    wispData.readBufPtr[14] = ((* (uint16_t *) (address+7)) >> 8)  & 0xFF;
-//    wispData.readBufPtr[15] = ((* (uint16_t *) (address+7)))  & 0xFF;
-//    wispData.readBufPtr[16] = ((* (uint16_t *) (address+8)))  & 0xFF;
-//    wispData.readBufPtr[17] = ((* (uint16_t *) (address+8)) >> 8)  & 0xFF;
-//    wispData.readBufPtr[18] = ((* (uint16_t *) (address+9)))  & 0xFF;
-//    wispData.readBufPtr[19] = ((* (uint16_t *) (address+9)) >> 8)  & 0xFF;
-//    wispData.readBufPtr[20] = ((* (uint16_t *) (address+10)))  & 0xFF;
-//    wispData.readBufPtr[21] = ((* (uint16_t *) (address+10)) >> 8)  & 0xFF;
-//    wispData.readBufPtr[22] = ((* (uint16_t *) (address+11)))  & 0xFF;
-//    wispData.readBufPtr[23] = ((* (uint16_t *) (address+11)))  & 0xFF;
-//    wispData.readBufPtr[24] = ((* (uint16_t *) (address+12)))  & 0xFF;
-//    wispData.readBufPtr[25] = ((* (uint16_t *) (address+12)))  & 0xFF;
-//    wispData.readBufPtr[26] = ((* (uint16_t *) (address+13)) >> 8)  & 0xFF;
-//    wispData.readBufPtr[27] = ((* (uint16_t *) (address+13)))  & 0xFF;
-//    wispData.readBufPtr[28] = ((* (uint16_t *) (address+14)) >> 8)  & 0xFF;
-//    wispData.readBufPtr[29] = ((* (uint16_t *) (address+14)))  & 0xFF;
-//    wispData.readBufPtr[30] = ((* (uint16_t *) (address+15)) >> 8)  & 0xFF;
-//    wispData.readBufPtr[31] = ((* (uint16_t *) (address+15)))  & 0xFF;
-
-//    // Read Memory
-//    (* (uint16_t *) (0x1900)) = 0xB007;
-//    (* (uint16_t *) (0x1902)) = 0xABCD;
-//
-//    uint16_t address = wispData.blockWriteBufPtr[0];
-//
-//    readBuff16_t = (uint16_t *) wispData.readBufPtr;
-//
-//    wispData.epcBuf[2] = ((* (uint16_t *) (address+0)) >> 8)  & 0xFF;
-//    wispData.epcBuf[3] = ((* (uint16_t *) (address+0)))  & 0xFF;
-//    wispData.epcBuf[4] = ((* (uint16_t *) (address+2)) >> 8)  & 0xFF;
-//    wispData.epcBuf[5] = ((* (uint16_t *) (address+2)))  & 0xFF;
-
-//    // blockWriteData
-//    wispData.epcBuf[2] = (wispData.blockWriteBufPtr[0] >> 8)  & 0xFF;
-//    wispData.epcBuf[3] = (wispData.blockWriteBufPtr[0])  & 0xFF;
-//    wispData.epcBuf[4] = (wispData.blockWriteBufPtr[1] >> 8)  & 0xFF;
-//    wispData.epcBuf[5] = (wispData.blockWriteBufPtr[1])  & 0xFF;
-//    wispData.epcBuf[6] = (wispData.blockWriteBufPtr[2] >> 8)  & 0xFF;
-//    wispData.epcBuf[7] = (wispData.blockWriteBufPtr[2])  & 0xFF;
-//    wispData.epcBuf[6] = (wispData.blockWriteBufPtr[2] >> 8)  & 0xFF;
-//    wispData.epcBuf[7] = (wispData.blockWriteBufPtr[2])  & 0xFF;
 
 }
 
@@ -197,7 +129,7 @@ void main(void) {
   wispData.epcBuf[6] = 0x00;            // Unused data field
   wispData.epcBuf[7] = 0x00;        // Unused data field
   wispData.epcBuf[8] = 0x00;        // Unused data field
-  wispData.epcBuf[9] = 0x51;        // Tag hardware revision (5.1)
+  wispData.epcBuf[9] = 0x00;        // Tag hardware revision (5.1)
   wispData.epcBuf[10] = 0x00;      // Unused data field
   wispData.epcBuf[11] = 0x00;        // Tag hardware revision (5.1)
 //  wispData.epcBuf[10] = *((uint8_t*)INFO_WISP_TAGID+1); // WISP ID MSB: Pull from INFO seg
