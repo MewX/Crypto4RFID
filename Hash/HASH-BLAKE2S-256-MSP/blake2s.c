@@ -58,17 +58,22 @@ static void blake2s_compress(blake2s_ctx *ctx, int last)
     uint8_t i;
     uint32_t v[16], m[16];
     uint16_t *v16 = v, *m16 = m; // using pointer for testing first (size would be [32])
-    uint16_t *h16 = ctx->h, *iv16 = blake2s_iv; // because of little-endian, I can't use blake2s_iv16 right now.
+    uint16_t *h16 = ctx->h; // using pointer for testing first (size would be [16])
+    uint16_t *t16 = ctx->t; // using pointer for testing first (size would be [4])
+    const uint16_t *iv16 = blake2s_iv; // because of little-endian, I can't use blake2s_iv16 right now.
 
     for (i = 0; i < 16; i++) {           // init work variables
         v16[i] = h16[i];
         v16[i + 16] = iv16[i];
-//        v[i] = ctx->h[i];
-//        v[i + 8] = blake2s_iv[i];
     }
 
-    v[12] ^= ctx->t[0];                 // low 32 bits of offset
-    v[13] ^= ctx->t[1];                 // high 32 bits
+    *(uint64_t *)&v[24] ^= *(uint64_t *)(ctx->t);
+//    v16[24] ^= t16[0];
+//    v16[25] ^= t16[1];
+//    v16[26] ^= t16[2];
+//    v16[27] ^= t16[3];
+//    v[12] ^= ctx->t[0];                 // low 32 bits of offset
+//    v[13] ^= ctx->t[1];                 // high 32 bits
     if (last)                           // last block flag set ?
         v[14] = ~v[14];
 
