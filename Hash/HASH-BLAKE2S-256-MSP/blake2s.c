@@ -33,6 +33,7 @@ static const uint32_t blake2s_iv[8] =
     0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19
 };
 
+// TODO: use it
 //static const uint16_t blake2s_iv16[8] =
 //{
 //    0xE667, 0x6A09, 0xAE85, 0xBB67, 0xF372, 0x3C6E, 0xF53A, 0xA54F,
@@ -67,18 +68,20 @@ static void blake2s_compress(blake2s_ctx *ctx, int last)
         v16[i + 16] = iv16[i];
     }
 
-    *(uint64_t *)&v[24] ^= *(uint64_t *)(ctx->t);
-//    v16[24] ^= t16[0];
-//    v16[25] ^= t16[1];
-//    v16[26] ^= t16[2];
-//    v16[27] ^= t16[3];
-//    v[12] ^= ctx->t[0];                 // low 32 bits of offset
-//    v[13] ^= ctx->t[1];                 // high 32 bits
-    if (last)                           // last block flag set ?
-        v[14] = ~v[14];
+    v16[24] ^= t16[0];
+    v16[25] ^= t16[1];
+    v16[26] ^= t16[2];
+    v16[27] ^= t16[3];
+    if (last) {                          // last block flag set ?
+        v16[28] = ~v16[28];
+        v16[29] = ~v16[29];
+    }
 
     for (i = 0; i < 16; i++)            // get little-endian words
         m[i] = B2S_GET32(&ctx->b[i << 2]);
+//    for (i = 0; i < 32; i++)            // get little-endian words
+//        m16[i] = *(uint16_t *)&ctx->b[i << 1];
+//    memcpy(m16, ctx->b, 64);
 
     for (i = 0; i < 10; i++) {          // ten rounds
         B2S_G( 0, 4,  8, 12, m[sigma[i][ 0]], m[sigma[i][ 1]]);
