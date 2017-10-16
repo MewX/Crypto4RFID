@@ -11,11 +11,21 @@
 
 // Little-endian byte access.
 
-#define B2S_GET32(p)                            \
-    (((uint32_t) ((uint8_t *) (p))[0]) ^        \
-    (((uint32_t) ((uint8_t *) (p))[1]) << 8) ^  \
-    (((uint32_t) ((uint8_t *) (p))[2]) << 16) ^ \
-    (((uint32_t) ((uint8_t *) (p))[3]) << 24))
+// actually it is little endian, so I can access it directly
+#define B2S_GET32(p) *(uint32_t *)(p)
+
+// try using to uint16_t to combine into int32
+//#define B2S_GET32(p)                            \
+//    (((uint32_t)(((uint16_t) ((uint8_t *) (p))[0]) ^        \
+//    (((uint16_t) ((uint8_t *) (p))[1]) << 8))) ^  \
+//    ((uint32_t)((((uint16_t) ((uint8_t *) (p))[2])) ^ \
+//    (((uint16_t) ((uint8_t *) (p))[3]) << 8)) << 16))
+
+//#define B2S_GET32(p)                            \
+//    (((uint32_t) ((uint8_t *) (p))[0]) ^        \
+//    (((uint32_t) ((uint8_t *) (p))[1]) << 8) ^  \
+//    (((uint32_t) ((uint8_t *) (p))[2]) << 16) ^ \
+//    (((uint32_t) ((uint8_t *) (p))[3]) << 24))
 
 // Mixing function G.
 
@@ -53,7 +63,7 @@ static void blake2s_compress(blake2s_ctx *ctx, int last)
         { 6, 15, 14, 9, 11, 3, 0, 8, 12, 2, 13, 7, 1, 4, 10, 5 },
         { 10, 2, 8, 4, 7, 6, 1, 5, 15, 11, 9, 14, 3, 12, 13, 0 }
     };
-    int i;
+    uint8_t i;
     uint32_t v[16], m[16];
 
     for (i = 0; i < 8; i++) {           // init work variables
@@ -67,7 +77,7 @@ static void blake2s_compress(blake2s_ctx *ctx, int last)
         v[14] = ~v[14];
 
     for (i = 0; i < 16; i++)            // get little-endian words
-        m[i] = B2S_GET32(&ctx->b[4 * i]);
+        m[i] = B2S_GET32(&ctx->b[i << 2]);
 
     for (i = 0; i < 10; i++) {          // ten rounds
         B2S_G( 0, 4,  8, 12, m[sigma[i][ 0]], m[sigma[i][ 1]]);
@@ -152,7 +162,7 @@ void blake2s_final(blake2s_ctx *ctx, void *out)
     // little endian convert and store
     for (i = 0; i < ctx->outlen; i++) {
         ((uint8_t *) out)[i] =
-            (ctx->h[i >> 2] >> (8 * (i & 3))) & 0xFF;
+            (ctx->h[i >> 2] >> ((i & 3) << 3)) & 0xFF;
     }
 }
 
