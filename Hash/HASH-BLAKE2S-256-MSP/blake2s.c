@@ -14,21 +14,7 @@
 // actually it is little endian, so I can access it directly
 #define B2S_GET32(p) *(uint32_t *)(p)
 
-// try using to uint16_t to combine into int32
-//#define B2S_GET32(p)                            \
-//    (((uint32_t)(((uint16_t) ((uint8_t *) (p))[0]) ^        \
-//    (((uint16_t) ((uint8_t *) (p))[1]) << 8))) ^  \
-//    ((uint32_t)((((uint16_t) ((uint8_t *) (p))[2])) ^ \
-//    (((uint16_t) ((uint8_t *) (p))[3]) << 8)) << 16))
-
-//#define B2S_GET32(p)                            \
-//    (((uint32_t) ((uint8_t *) (p))[0]) ^        \
-//    (((uint32_t) ((uint8_t *) (p))[1]) << 8) ^  \
-//    (((uint32_t) ((uint8_t *) (p))[2]) << 16) ^ \
-//    (((uint32_t) ((uint8_t *) (p))[3]) << 24))
-
 // Mixing function G.
-
 #define B2S_G(a, b, c, d, x, y) {   \
     v[a] = v[a] + v[b] + x;         \
     v[d] = ROTR32(v[d] ^ v[a], 16); \
@@ -46,6 +32,12 @@ static const uint32_t blake2s_iv[8] =
     0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A,
     0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19
 };
+
+//static const uint16_t blake2s_iv16[8] =
+//{
+//    0xE667, 0x6A09, 0xAE85, 0xBB67, 0xF372, 0x3C6E, 0xF53A, 0xA54F,
+//    0x527F, 0x510E, 0x688C, 0x9B05, 0xD9AB, 0x1F83, 0xCD19, 0x5BE0
+//};
 
 // Compression function. "last" flag indicates last block.
 
@@ -65,10 +57,14 @@ static void blake2s_compress(blake2s_ctx *ctx, int last)
     };
     uint8_t i;
     uint32_t v[16], m[16];
+    uint16_t *v16 = v, *m16 = m; // using pointer for testing first (size would be [32])
+    uint16_t *h16 = ctx->h, *iv16 = blake2s_iv; // because of little-endian, I can't use blake2s_iv16 right now.
 
-    for (i = 0; i < 8; i++) {           // init work variables
-        v[i] = ctx->h[i];
-        v[i + 8] = blake2s_iv[i];
+    for (i = 0; i < 16; i++) {           // init work variables
+        v16[i] = h16[i];
+        v16[i + 16] = iv16[i];
+//        v[i] = ctx->h[i];
+//        v[i + 8] = blake2s_iv[i];
     }
 
     v[12] ^= ctx->t[0];                 // low 32 bits of offset
