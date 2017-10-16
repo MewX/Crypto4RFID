@@ -9,11 +9,6 @@
 #define ROTR32(x, y)  (((x) >> (y)) ^ ((x) << (32 - (y))))
 #endif
 
-// Little-endian byte access.
-
-// actually it is little endian, so I can access it directly
-#define B2S_GET32(p) *(uint32_t *)(p)
-
 // Mixing function G.
 #define B2S_G(a, b, c, d, x, y) {   \
     v[a] = v[a] + v[b] + x;         \
@@ -77,11 +72,8 @@ static void blake2s_compress(blake2s_ctx *ctx, int last)
         v16[29] = ~v16[29];
     }
 
-    for (i = 0; i < 16; i++)            // get little-endian words
-        m[i] = B2S_GET32(&ctx->b[i << 2]);
-//    for (i = 0; i < 32; i++)            // get little-endian words
-//        m16[i] = *(uint16_t *)&ctx->b[i << 1];
-//    memcpy(m16, ctx->b, 64);
+    for (i = 0; i < 32; i++)            // get little-endian words
+        m16[i] = *(uint16_t *)&ctx->b[i << 1];
 
     for (i = 0; i < 10; i++) {          // ten rounds
         B2S_G( 0, 4,  8, 12, m[sigma[i][ 0]], m[sigma[i][ 1]]);
@@ -94,8 +86,14 @@ static void blake2s_compress(blake2s_ctx *ctx, int last)
         B2S_G( 3, 4,  9, 14, m[sigma[i][14]], m[sigma[i][15]]);
     }
 
-    for( i = 0; i < 8; ++i )
-        ctx->h[i] ^= v[i] ^ v[i + 8];
+//    for( i = 0; i < 8; ++i )
+//        ctx->h[i] ^= v[i] ^ v[i + 8];
+//    for( i = 0; i < 16; ++i )
+//        h16[i] ^= v16[i] ^ v16[i + 16];
+//    for (i = 0; i < 8; ++i)
+//        *(uint32_t *)&h16[i << 1] ^= *(uint32_t *)&v16[i << 1] ^ *(uint32_t *)&v16[(i << 1) + 16];
+    for (i = 0; i < 16; i += 2)
+        *(uint32_t *)&h16[i] ^= *(uint32_t *)&v16[i] ^ *(uint32_t *)&v16[i + 16];
 }
 
 // Initialize the hashing context "ctx" with optional key "key".
