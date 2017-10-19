@@ -1,0 +1,88 @@
+# Wisent Global variables needed to change/construct messages.
+write_data                 = None
+check_data                 = None
+write_state                = None
+resend_count               = 0
+nack_counter               = 0
+remaining_length           = 0
+consecutive_messages_count = 0
+throttle_index             = 0
+message_payload            = T[throttle_index]     # Maximum message payload size in words.     (S_p)
+
+# Wisent transfer statistics.
+start_time          = None
+current_time        = None
+total_words_to_send = 0
+words_sent          = 0
+
+######################################################################################################
+
+# Stop the twisted reactor at the end of the program.
+def finish (_):
+	logger.info('Total number of tags seen: {}'.format(tagReport))
+	
+	if reactor.running:
+		reactor.stop()
+
+
+def toLLRPMessage(word_count, content):
+	llrp_message = {
+		'OpSpecID': 0,
+		'MB': 3,
+		'WordPtr': 0,
+		'AccessPassword': 0,
+		'WriteDataWordCount': int(word_count),
+		'WriteData': content.decode('hex'),
+	}
+	return llrp_message
+
+
+def constructWisentMessage(payload_size):
+	checksum        = 0
+	word_count      = "{:02x}".format(2 + payload_size)
+	payload_length  = "{:02x}".format(2 * payload_size)
+	offset          = ((len(current_line)-12)-remaining_length)/4
+	address         = "{:04x}".format(int("0x" + current_line[3:7], 0) + 2 * offset)
+	ran_num		= "{:04x}".format(int("0x" + current_line[7:11], 0) + 2 * offset)
+	fram_length	= "{:04x}".format(int("0x" + current_line[12:16], 0) + 2 * offset)
+	wisent_message  = word_count + payload_length + address + ran_num + fram_length
+	
+	# Data
+	for x in range(0, payload_size):
+		wisent_message += current_line[9+4*(x+offset):9+4*(x+offset+1)]
+	
+	for i in range(0, len(wisent_message)/2):
+		checksum += int("0x"+ wisent_message[2*i:2*i+2], 0)
+	checksum = checksum % 256
+	checksum = "{:02x}".format(checksum)
+	
+	message_verification = word_count + payload_length + address + checksum
+	wisent_message += checksum + "00"
+	return [wisent_message, message_verification]
+
+
+def sendWisentMessage(n, p = ""):
+	global fac, words_sent, remaining_length, index, write_data, check_data
+	
+	# Decide whether whole line can be sent with 1 message or has to be split.
+	index             = (index + 1) if (n <= message_payload) else index
+	n                 = n if (n <= message_payload) else message_payload
+	
+	wisent_message    = constructWisentMessage(n)
+	message           = toLLRPMessage(3+n, wisent_message[0])
+	words_sent       += n
+	remaining_length -= n*4
+	
+	write_data        = wisent_message[0]
+	check_data        = wisent_message[1]
+	
+	if (len(p) > 0):
+		logger.info("Next block: " + check_data + p)
+	else:
+		logger.info("Resent: " + check_data)
+	
+	# Send the message to the reader.
+	try:
+		fac.nextAccess(readParam=None, writeParam=message, stopParam=global_stop_param)
+	except:
+		logger.info("Error when trying to construct next AccessSpec on new line.")
