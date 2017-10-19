@@ -1,9 +1,20 @@
 $(document).ready(function() {
 	
-	var mode = true;
+	var mode 			= true;
+	var attMode 		= true;
 	
 	$('#RFID-mode').change(function() {
       mode = $(this).prop('checked');
+      if(mode){
+    	  $('#RFID-secure-mode').bootstrapToggle("on");m,
+      }
+    })
+    
+	$('#RFID-secure-mode').change(function() {
+		attMode = $(this).prop('checked');
+		if(!attMode){
+			$('#RFID-mode').bootstrapToggle("off");
+		}
     })
     
     $("#pauseForm").on("submit", function() {
@@ -66,6 +77,20 @@ $(document).ready(function() {
 											, "endAddr": endAddr}));
     	return false;
     	
+    });
+    
+    $("#readForm-wisp-att").on("submit", function() {
+    	var readWispBody = document.getElementById('readWispData');
+    	readWispBody.innerHTML = '';
+    	
+    	var startAddr = $("#user-StartAddr").val();
+    	var length = $("#user-MemLength").val();
+    	
+    	window.ws.send(JSON.stringify({"type":"readWispAtt"
+											, "startAddr": startAddr    										
+											, "memLeng": length}));
+    	
+    	return false;
     });
     
     $("#hexfile-upload").on("submit", function(){
@@ -138,8 +163,11 @@ $(document).ready(function() {
     });
     
     $("#readBtn").click(function(){
+    	console.log(mode + " == " + attMode);
     	if(mode){
     		$("#readDiv").slideToggle("slow");
+    	}else if(!mode && !attMode){
+    		$("#readWispAttDiv").slideToggle("slow");
     	}else{
     		$("#readWispDiv").slideToggle("slow");
     	}
@@ -163,7 +191,7 @@ $(document).ready(function() {
         var input = $(this).parents('.input-group').find(':text'),
             log = numFiles > 1 ? numFiles + ' files selected' : label;
         if( input.length ) {
-            input.val(log);
+            input.val(log);readWispAttDiv
         } else {
             if( log ) alert(log);
         }

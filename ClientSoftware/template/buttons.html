@@ -11,9 +11,12 @@
 	<form method="post" id="resumeForm">
 		<button type="submit" class="btn btn-success">RESUME</button>
 	</form>
-	<form>
+	<form style="display:none;">
 		<button type="button" class="btn btn-info" id="generatorBtn">Generator(Hex)</button>
 	</form>
+	<div id="secure-modes">
+		<input id="RFID-secure-mode" type="checkbox" checked data-toggle="toggle" data-onstyle="success" data-size="small" data-on="Normal" data-off="Attestation" data-offstyle="danger">
+	</div>
 	<div id="modes">
 		<input id="RFID-mode" type="checkbox" checked data-toggle="toggle" data-onstyle="info" data-size="small" data-on="Gen2" data-off="WISP" data-offstyle="warning">
 	</div>

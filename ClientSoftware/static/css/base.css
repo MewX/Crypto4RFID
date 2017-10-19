@@ -67,7 +67,7 @@ body {
 	/* margin: 0 15px 0; */
 }
 
-#modes{
+#modes, #secure-modes{
 	margin-top:1px;
 	margin-left:5px;
 	float:right;
