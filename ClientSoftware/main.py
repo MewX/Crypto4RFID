@@ -24,12 +24,6 @@ from sllurp.WControlModules import WiRead
 
 from sllurp.WModules import AccessSpecFactory as ASF, h2i, i2h
 
-'''
-Sllurp/Tornado
-This file contains an example showing how to use Sllurp with Tornado
-to update a web page via websockets when rfid tags are seen.
-'''
-
 # WISP Control global variables.
 fac                 = None
 proto               = None
@@ -57,6 +51,8 @@ hexfile             = None
 hexFileLines        = None
 current_line        = None
 hexFileIdx          = 0
+
+checkCnt            = 5
 
 T                   = [1,2,3,4,6,8,16]  # Set of allowed values for S_p after throttle.
 
@@ -196,14 +192,18 @@ def tag_seen_callback(llrpMsg):
                                                       , 'OpSpecId' : tag["OpSpecResult"][ops]["OpSpecID"] 
                                                       , 'status' : 'Success'} ],})    
 
-                                if (hexFileIdx == (len(OpSpecs) - 1)):
-                                    logger.info(" EOF reached.")
-                                else:
-                                    logger.info("WriteWisp : " + str(hexFileIdx))
-                                    accessId += 1
-                                    hexFileIdx += 1                                    
+                                if (tag["EPC-96"][22:] == 'ff') :
                                     fac.nextAccessSpec(opSpecs = [OpSpecs[hexFileIdx]], 
                                         accessSpec = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': 1, 'OperationCountValue': 1,},})  
+                                else :
+                                    if (hexFileIdx == (len(OpSpecs) - 1)):
+                                        logger.info(" EOF reached.")
+                                    else:
+                                        logger.info("WriteWisp : " + str(hexFileIdx))
+                                        accessId += 1
+                                        hexFileIdx += 1                                    
+                                        fac.nextAccessSpec(opSpecs = [OpSpecs[hexFileIdx]], 
+                                            accessSpec = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': 1, 'OperationCountValue': 1,},})  
                                 
                         print getTimeMeasurement()
                 else:
@@ -294,7 +294,7 @@ def BlockWriteAccess(pto, arg):
         if (len(hexFileLines[i][1:3]) > 0) :
             total_words_to_send = total_words_to_send + ((len(hexFileLines[i]) - 12)/4)
             
-            writeData = "{:02d}".format((int(dataCnt) / 2) + 2) + dataCnt + hexFileLines[i][3:7] + hexFileLines[i][9:(len(hexFileLines[i])-3)]
+            writeData = "{:02x}".format((len(hexFileLines[i])-3)/4) + dataCnt + hexFileLines[i][3:7] + hexFileLines[i][9:(len(hexFileLines[i])-3)]
             writeData += calcChecksum(writeData)
             print ("writeData : ", writeData, "  dataCnt ", dataCnt)
             if(dataCnt != '00') :

@@ -69,6 +69,10 @@ $(document).ready(function() {
     });
     
     $("#hexfile-upload").on("submit", function(){
+    	
+    	var writeWispBody = document.getElementById('writeWispData');
+    	writeWispBody.innerHTML = '';    	
+    	
 	    	var formData = new FormData($(this)[0]);
 	    	$.ajax({
 	    		url: "/upload",
@@ -106,8 +110,20 @@ $(document).ready(function() {
         }
     };
     
-    $("#testForm").on("submit", function() {
-    	window.ws.send(JSON.stringify({"type":"test"}));
+    $("#generatorForm").on("submit", function() {
+    	var startAddr = parseInt("0x" + $("#gen-start").val(), 16);
+    	var endAddr = parseInt("0x" + $("#gen-end").val(), 16);
+    	var wordcnt = parseInt("0x" + $("#gen-wordcnt").val(), 16);
+    	var cnt = ("0" + wordcnt).slice(-2);
+    	var hexfile = ":" + wordcnt;
+    	
+    	alert(startAddr + wordcnt);
+    	
+//    	for(var i=startAddr; i<endAddr; i+=parseInt(wordcnt)){
+//    		hexfile += ("0" + i.toString()).slice(-4);
+//    		console.log(hexfile);
+//    	}
+//    	window.ws.send(JSON.stringify({"type":"test"}));
         return false;
     });
     
@@ -134,6 +150,12 @@ $(document).ready(function() {
     		$("#writeDiv").slideToggle("slow");
     	}else{
     		$("#writeWispDiv").slideToggle("slow");
+    	}
+    });
+    
+    $("#generatorBtn").click(function(){
+    	if(!mode){
+    		$("#generatorDiv").slideToggle("slow");
     	}
     });
     
