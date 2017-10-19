@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include "tools.h"
 
+// with key schedule
+
 typedef uint16_t u16;
 typedef uint8_t u8;
 
@@ -22,6 +24,47 @@ static const u8 S7[16] = {13, 10, 15, 0, 14, 4, 9, 11, 2, 1, 8, 3, 7, 5, 12, 6};
 static const u8 S8[16] = {8, 7, 14, 5, 15, 13, 0, 6, 11, 12, 9, 10, 2, 4, 1, 3};
 static const u8 S9[16] = {11, 5, 15, 0, 7, 2, 9, 13, 4, 8, 1, 12, 14, 10, 3, 6};
 
+
+void __attribute__ ((noinline)) EncryptKeySchedule(u8 key[10], u8 output[NBROUND][4])
+{
+     u8 i, KeyR[4];
+
+     output[0][3] = key[9];
+     output[0][2] = key[8];
+     output[0][1] = key[7];
+     output[0][0] = key[6];
+
+     for(i=1;i<32;i++)
+     {
+     // K <<< 29
+     KeyR[3]=key[9];
+     KeyR[2]=key[8];
+     KeyR[1]=key[7];
+     KeyR[0]=key[6];
+
+     key[9]=(((key[6] & 0x07)<<5)&0xE0) ^ (((key[5]& 0xF8)>>3) & 0x1F);
+     key[8]=(((key[5] & 0x07)<<5)&0xE0) ^ (((key[4]& 0xF8)>>3) & 0x1F);
+     key[7]=(((key[4] & 0x07)<<5)&0xE0) ^ (((key[3]& 0xF8)>>3) & 0x1F);
+     key[6]=(((key[3] & 0x07)<<5)&0xE0) ^ (((key[2]& 0xF8)>>3) & 0x1F);
+     key[5]=(((key[2] & 0x07)<<5)&0xE0) ^ (((key[1]& 0xF8)>>3) & 0x1F);
+     key[4]=(((key[1] & 0x07)<<5)&0xE0) ^ (((key[0]& 0xF8)>>3) & 0x1F);
+     key[3]=(((key[0] & 0x07)<<5)&0xE0) ^ (((KeyR[3]& 0xF8)>>3) & 0x1F);
+     key[2]=(((KeyR[3] & 0x07)<<5)&0xE0) ^ (((KeyR[2]& 0xF8)>>3) & 0x1F);
+     key[1]=(((KeyR[2] & 0x07)<<5)&0xE0) ^ (((KeyR[1]& 0xF8)>>3) & 0x1F);
+     key[0]=(((KeyR[1] & 0x07)<<5)&0xE0) ^ (((KeyR[0]& 0xF8)>>3) & 0x1F);
+
+     // reste du keyschedule
+     key[9]=(S9[((key[9]>>4) & 0x0F)]<<4) ^ S8[(key[9]& 0x0F)];
+
+     key[6]=key[6] ^ ((i>>2) & 0x07);
+     key[5]=key[5] ^ ((i & 0x03)<<6);
+
+     output[i][3] = key[9];
+     output[i][2] = key[8];
+     output[i][1] = key[7];
+     output[i][0] = key[6];
+     }
+}
 
 void Swap(u8 block[8])
 {
@@ -97,13 +140,13 @@ void Swap(u8 block[8])
 
 int main()
 {
-    // Stop WatchDog during initialization
-    WDTCTL = WDTPW + WDTHOLD;
+    WDTCTL = WDTPW | WDTHOLD;   // Stop watchdog timer
+    PM5CTL0 &= ~LOCKLPM5;       // Lock LPM5.
 
     u8 mkey[10];
     u8 rkey[NBROUND][4];
 
-     mkey[0] = 0xdc;
+    mkey[0] = 0xdc;
     mkey[1] = 0xfe;
     mkey[2] = 0xef;
     mkey[3] = 0xcd;
@@ -114,11 +157,12 @@ int main()
     mkey[8] = 0x23;
     mkey[9] = 0x01;
 
-   u8 state[8]={0xef, 0xcd, 0xab, 0x89, 0x67, 0x45, 0x23, 0x01};
+    u8 state[8]={0xef, 0xcd, 0xab, 0x89, 0x67, 0x45, 0x23, 0x01};
 
- START_DECRYPT();
- Decrypt(state,rkey);
- END_EXPE();
+    START_DECRYPT();
+    EncryptKeySchedule(mkey,rkey);
+    Decrypt(state,rkey);
+    END_EXPE();
 
-return 0;
+    return 0;
 }

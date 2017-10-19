@@ -6,8 +6,8 @@
 
 int main(int argc, char** argv)
 {
-    // Stop WatchDog during initialization
-    WDTCTL = WDTPW + WDTHOLD;
+    WDTCTL = WDTPW | WDTHOLD;   // Stop watchdog timer
+    PM5CTL0 &= ~LOCKLPM5;       // Lock LPM5.
 
     uint8_t akey[16]={0xED,0xED,0xED,0xED,0xED,0xED,0xED,0xED,0xED,0xED,0xED,0xED,0xED,0xED,0xED,0xED};
     uint8_t adata[16]={0xED,0xED,0xED,0xED,0xED,0xED,0xED,0xED,0xED,0xED,0xED,0xED,0xED,0xED,0xED,0xED};
@@ -20,7 +20,7 @@ int main(int argc, char** argv)
     //AES256_encryptData(AES256_BASE, Data, DataAESencrypted);
 
     // Load a cipher key to module
-    AES256_setDecipherKey(AES256_BASE, akey, 256);
+    AES256_setDecipherKey(AES256_BASE, akey, AES256_KEYLENGTH_128BIT);
     // Decrypt data
     AES256_decryptData(AES256_BASE, adata, decrypt);
 

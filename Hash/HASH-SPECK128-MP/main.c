@@ -1,5 +1,7 @@
 /*
-Copyright (c) 2016, Moritz Bitsch
+Copyright (c) 2016, Moritz Bitsch, 2017, Yang Su
+
+Hash function using SPECK cipher in, Merkle-Damgard construction
 
 Permission to use, copy, modify, and/or distribute this software for any
 purpose with or without fee is hereby granted, provided that the above
@@ -14,7 +16,7 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 #include <stdint.h>
-#include <stdio.h>
+#include <msp430.h>
 
   #define ROR(x, r) ((x >> r) | (x << ((sizeof(uint32_t) * 8) - r)))
   #define ROL(x, r) ((x << r) | (x >> ((sizeof(uint32_t) * 8) - r)))
@@ -50,39 +52,66 @@ void SPECK_CORE(uint32_t  pt[2], uint32_t ct[2], uint32_t  K[4])
     R(ct[1], ct[0], b);
 }
 
-void __attribute__ ((noinline)) HASH_SPECK128(uint64_t nonce, const uint8_t firmware[], uint16_t size, uint32_t state[2]) {
+
+void HASH_SPECK128(uint64_t nonce,uint8_t firmware[], uint16_t size, uint32_t state[4]){
     uint16_t idx = 0;
-    //uint16_t i = 0;
-    state[0] = (nonce & 0xffffffff); // low 32 bits
-    state[1] = (nonce >> 32); // high 32 bits
-    uint32_t nextState[2] = {0,0};
-    uint32_t block[4]; // key
+    uint8_t i=0;
+    state[0] = (nonce & 0xffffffff);
+    state[1] = (nonce >> 32);
+    state[2] = 0;
+    state[3] = 0;
+    uint32_t nextState[4] = {0,0,0,0};
+    uint32_t block[2];
     uint16_t residual = size;
-    
-    for(;idx<size-16;idx+=16){     //first n blocks
-        //printf("Processing idx = %d: ", idx);
-        //for (i = 0; i < 16; i ++) printf("0x%02X ", firmware[idx + i]);
-        //printf("\n");
-        //uint32_t* input = (firmware+(idx*sizeof(uint8_t)));
-        memcpy(block,(firmware+(idx*sizeof(uint8_t))),16); // 16 * 8 = 128 key
-        SPECK_CORE(state,nextState,block);
-        state[0] = nextState[0];
-        state[1] = nextState[1];
+    uint32_t prevState[4];
+    for(i=0;i<4;i++){
+        prevState[i] = state[i];
     }
-    residual = size - idx; //how many bytes left not hashed
-    //printf("Last idx = %d; residual = %d.\n", idx, residual);
-    
-    //last block if firmware is not whole multiple of 128 bit
+    if(size > 8){
+        for(idx = 0;idx<size-8;idx+=8){     //first n blocks
+            memcpy(block,(firmware+(idx*sizeof(uint8_t))),8);
+            SPECK_CORE(block,nextState,state);
+            state[0] = nextState[0];
+            state[1] = nextState[1];
+            state[2] = 0;
+            state[3] = 0;
+            state[0] ^= block[0];
+            state[1] ^= block[1];
+            state[0] ^= prevState[0];
+            state[1] ^= prevState[1];
+            state[2] ^= prevState[2];
+            state[3] ^= prevState[3];
+            for(i=0;i<4;i++){
+                prevState[i] = state[i];
+            }
+        }
+        residual = size - idx;//how many bytes left not hashed
+    }else{
+        residual = size;
+        idx = 0;
+    }
+    //last block if firmware is not whole multiple of 64 bit
     memcpy(block,(firmware+(idx*sizeof(uint8_t))),residual);
-    memset(block+residual,0,16-residual);
-    SPECK_CORE(state,nextState,block);//fill the missing byte with 0
+    memset(block+residual,0,8-residual);
+    SPECK_CORE(block,nextState,state);//fill the missing byte with 0
     state[0] = nextState[0];
     state[1] = nextState[1];
+    state[2] = 0;
+    state[3] = 0;
+    state[0] ^= block[0];
+    state[1] ^= block[1];
+    state[0] ^= prevState[0];
+    state[1] ^= prevState[1];
+    state[2] ^= prevState[2];
+    state[3] ^= prevState[3];
 }
+
 
 
 int main(int argc, char** argv)
 {
+    WDTCTL = WDTPW | WDTHOLD;   // Stop watchdog timer
+    PM5CTL0 &= ~LOCKLPM5;       // Lock LPM5.
 
     const uint8_t App1[] = {
     0x81,0x00,0x00,0x24,0xb0,0x13,0xf0,0x44,0x0c,0x43,0xb0,0x13,0x34,0x44,0xb0,0x13,
@@ -99,14 +128,15 @@ int main(int argc, char** argv)
     0x10,0x00,0x42,0x03,0xb2,0x40,0xe7,0x03,0x52,0x03,0xb2,0x40,0x10,0x01,0x40,0x03,
     0x03,0x43,0x32,0xd0,0xd8,0x00,0x03,0x43,0x03,0x43,0x0c,0x43,0x10,0x01,0xb2,0x40,
     0xde,0xc0,0x00,0x1c,0xd2,0xd3,0x02,0x1c,0x32,0xc2,0x03,0x43,0xb2,0x40,0x04,0xa5,
-    0x20,0x01,0xff,0x3f,0x03,0x43,0x03,0x43,0xff,0x3f,0x03,0x43,0x1c,0x43,0x10,0x01,
+    0x20,0x01,0xff,0x3f,0x03,0x43,0x03,0x43,0xff,0x3f,0x03,0x43,0x1c,0x43,0x10,0x02,
     };
-    uint16_t App1_size = 128;
+    uint16_t App1_size = 240;// make sure the firmware is continuous and you know its size
     uint64_t nonce = 0x0102030405060708;// nonce know by both side, protect reply attack
-    uint64_t s;int i;
-    HASH_SPECK128(nonce, App1, App1_size, (uint32_t *)&s);
-	
-	printf("The hash value is: 0x%16lX\n", s);
-	
+    uint64_t s[2];
+    HASH_SPECK128(nonce,(uint8_t *)App1,App1_size,s);
+
+    uint8_t hashV[8]; // hash value
+    memcpy(hashV, s, 8);
+
     return 0;
 }

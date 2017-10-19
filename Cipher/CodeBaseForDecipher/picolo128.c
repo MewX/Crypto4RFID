@@ -21,8 +21,9 @@ u16 FonctionF(u16 subState);
 
 int main(int argc, char* argv[])
 {
-    // Stop WatchDog during initialization
-    WDTCTL = WDTPW + WDTHOLD;
+    WDTCTL = WDTPW | WDTHOLD;   // Stop watchdog timer
+    PM5CTL0 &= ~LOCKLPM5;       // Lock LPM5.
+	
     // ************ D閏larations ************
     u16 text[4]={0xcdef,0x89ab,0x4567,0x0123};
     u16 k128[8] = {0x0011, 0x2233, 0x4455, 0x6677, 0x8899, 0xaabb, 0xccdd, 0xeeff};
