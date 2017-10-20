@@ -24,10 +24,18 @@
 		<div class="col-lg-5">
 			<div class="EPC-readWisp input-group">
 				<span class="input-group-addon" id="basic-addon1">Start Address</span>
-				<input id="user-StartAddr" class="form-control" type="text" required/>
+				<input id="user-StartAddr-Att" class="form-control" type="text" required/>
 			</div>
 		</div>
-		<div class="col-lg-7">
+		<div class="col-lg-5">
+			<div class="EPC-readWisp input-group">
+				<span class="input-group-addon" id="basic-addon1">Random Number</span>
+				<input id="user-RanNum-Att" class="form-control" type="text" required/>
+			</div>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-lg-8">
 			<div class="EPC-readWisp input-group">
 				<span class="input-group-addon" id="basic-addon1">Memory Length</span>
 				<input id="user-MemLength" class="form-control" type="text" required/>
@@ -39,16 +47,16 @@
 	</div>
 </form>
 	<div class="row">
-		<div class="table-responsive" style="margin: 0 15px;">	
-			<table class="table" id="read" style="border:0;">
-				<thead>
-					<tr>
-						<td>ReadData</td>
-					</tr>
-				</thead>
-				<tbody id="readWispData"></tbody>
-			</table>
-		</div>	
+	<div class="table-responsive" style="margin: 0 15px;">	
+		<table class="table" id="read" style="border:0;">
+			<thead>
+				<tr>
+					<td>ReadData</td>
+				</tr>
+			</thead>
+			<tbody id="readWispDataAtt"></tbody>
+		</table>
+	</div>
 	</div>
 </div>
 

@@ -6,7 +6,7 @@ $(document).ready(function() {
 	$('#RFID-mode').change(function() {
       mode = $(this).prop('checked');
       if(mode){
-    	  $('#RFID-secure-mode').bootstrapToggle("on");m,
+    	  $('#RFID-secure-mode').bootstrapToggle("on");
       }
     })
     
@@ -15,7 +15,7 @@ $(document).ready(function() {
 		if(!attMode){
 			$('#RFID-mode').bootstrapToggle("off");
 		}
-    })
+    });
     
     $("#pauseForm").on("submit", function() {
     	window.ws.send(JSON.stringify({"type":"pause"}));
@@ -80,15 +80,17 @@ $(document).ready(function() {
     });
     
     $("#readForm-wisp-att").on("submit", function() {
-    	var readWispBody = document.getElementById('readWispData');
+    	var readWispBody = document.getElementById('readWispDataAtt');
     	readWispBody.innerHTML = '';
     	
-    	var startAddr = $("#user-StartAddr").val();
+    	var startAddr = $("#user-StartAddr-Att").val();
     	var length = $("#user-MemLength").val();
+    	var rannum = $("#user-RanNum-Att").val();
     	
     	window.ws.send(JSON.stringify({"type":"readWispAtt"
 											, "startAddr": startAddr    										
-											, "memLeng": length}));
+											, "LOF": length
+											, "user-RanNum-Att":rannum}));
     	
     	return false;
     });

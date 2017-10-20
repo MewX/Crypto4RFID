@@ -39,6 +39,7 @@
 				, tbody2 = document.getElementById('readData')
 				, tbody3 = document.getElementById('readWispData')
 				, tbody4 = document.getElementById('writeWispData')
+				, tbody5 = document.getElementById('readWispDataAtt')
 				, rowData = ''
 				, readRowData = ''
 				, readWispRowData = ''
@@ -93,7 +94,11 @@
 				if (!ReadWispRow) {
 					ReadWispRow = document.createElement("tr")
 					ReadWispRow.id = "readWisp-" + readWipsTag['EPCvalue'] + "-" + readWipsTag['OpSpecId']
-					tbody3.appendChild(ReadWispRow)
+					if(readWipsTag['AccessType'] == 'readWispAtt'){
+						tbody5.appendChild(ReadWispRow)
+					}else{
+						tbody3.appendChild(ReadWispRow)
+					}
 				}
 				
 				readWispRowData = '';

@@ -33,6 +33,7 @@ tagReport           = 0
 bytes_per_read      = 0x20
 wordCnt             = str(int('{:02X}'.format(bytes_per_read)) - 4)
 AccssSpecType       = '1F'              # 1F is reading WISP otherwise writing WISP
+AttesSpecType       = '2F'
 accessType          = ''
 accessId            = 1
 OCV                 = 1
@@ -146,13 +147,14 @@ def tag_seen_callback(llrpMsg):
                         if ("ReadData" in tag["OpSpecResult"][ops]):
                             logger.info("Readdata = " + tag["OpSpecResult"][ops]["ReadData"] + " accessType :" + accessType)
                             
-                            if (accessType == 'readWisp') :
+                            if (accessType == 'readWisp' or accessType == 'readWispAtt') :
                                 # AsscessSpec Reading message for WISP5
                                 logger.info("OpSpecsIdx : " + str(OpSpecsIdx) + " OpSpecs.__len__(): " + str(OpSpecs.__len__()) )
                                 smokesignal.emit('rfid', {
                                     'readWispTags': [{'readWisp' : tag["OpSpecResult"][ops]["ReadData"]
                                                       , 'EPCvalue' : tag["EPC-96"]
-                                                      , 'OpSpecId' : tag["OpSpecResult"][ops]["OpSpecID"] }],})  
+                                                      , 'OpSpecId' : tag["OpSpecResult"][ops]["OpSpecID"] 
+                                                      , 'AccessType' : accessType }],})  
                                 
                                 if(OpSpecsIdx < OpSpecs.__len__()) :
                                     logger.info("ReadWisp : ")
@@ -169,7 +171,7 @@ def tag_seen_callback(llrpMsg):
                                 
                                 
                         elif(0 == tag["OpSpecResult"][ops]["NumWordsWritten"]):
-                            if (accessType == 'readWisp') :
+                            if (accessType == 'readWisp' or accessType == 'readWispAtt') :
                                 OpSpecsIdx -= 2
                                 fac.nextAccessSpec(opSpecs = [OpSpecs[OpSpecsIdx], OpSpecs[OpSpecsIdx+1]], 
                                     accessSpec = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': 1, 'OperationCountValue': 1,},})
@@ -241,16 +243,20 @@ def polite_shutdown(factory):
     return factory.politeShutdown()
 
 def access_memory(arg):
+    
     if(arg['type'] == 'readWisp'):
         for pto in fac.protocols: 
             BlockReadAccess(pto, arg)
     elif(arg['type'] == 'writeWisp'):
         for pto in fac.protocols: 
-            BlockWriteAccess(pto, arg)   
+            BlockWriteAccess(pto, arg)  
+    elif(arg['type'] == 'readWispAtt'):
+        print arg
+        for pto in fac.protocols: 
+            BlockChallengeAccess(pto, arg)   
     else :
         for pto in fac.protocols: 
             ReadWriteAccess(pto, arg)
-
 
 def getBlockWriteMessage(OpSpecID, count, content):
     
@@ -342,7 +348,7 @@ def BlockReadAccess(pto, arg):
 #         'WriteData': '\x16\xCC\x00\x00',
 #     }
 #      
-#     readSpecParam = {
+#     readSpecParam = {0
 #         'OpSpecID': 11,
 #         "MB": 3, # EPC = 1 user memory = 3
 #         "WordPtr": 0,
@@ -380,6 +386,38 @@ def BlockReadAccess(pto, arg):
      
 #     proto.nextAccessSpec(opSpecs = OpSpecs,
 #         accessSpec = {'ID':2, 'StopParam': {'AccessSpecStopTriggerType': 1, 'OperationCountValue': 1,},})
+
+def BlockChallengeAccess(pto, arg):
+
+    global OpSpecs, proto, OpSpecsIdx, accessId, wordCnt
+    proto           =  pto
+    OpSpecsIdx      = 2
+    accessId        = 1
+    wordCnt         = str(int('{:02X}'.format(bytes_per_read)) - 4)
+
+    start_address           = arg['startAddr']
+    lengthofFramwork        = int(arg['LOF'], 16)    
+    ran_num                 = arg['user-RanNum-Att']
+#     wordCnt                 = str(int('{:02X}'.format(lengthofFramwork / bytes_per_read)) - 4)
+    OpSpecs                 = []
+    cnt                     = 1
+    
+    # for i in range(0,len(hexFileLines)-1):
+    for j in range(0, lengthofFramwork, bytes_per_read):
+        print i2h(j)
+        hexContent = AttesSpecType + i2h(j)[2:] +  start_address + ran_num
+        print ("hexContent  : ", hexContent)
+        OpSpecs.append(getBlockWriteMessage(cnt, (len(hexContent) / 4), hexContent))
+        OpSpecs.append(getReadMessage((cnt * 10) + 1))
+        cnt += 1
+
+    startTimeMeasurement()
+    
+    print OpSpecs
+    
+    proto.startAccessSpec(None, opSpecs = [OpSpecs[0], OpSpecs[1]],
+        accessSpecParams = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': StopTrigger, 'OperationCountValue': OCV,},})
+    
         
 def ReadWriteAccess(proto, arg):
     
@@ -419,6 +457,13 @@ def ReadWriteAccess(proto, arg):
 #                                 writeWords=writeSpecParam)  
         return proto.startAccess(readWords=None,
             writeWords=[writeSpecParam],accessStopParam = {'AccessSpecStopTriggerType': 1, 'OperationCountValue': 5,})
+
+
+
+    
+
+#     proto.startAccessSpec(None, opSpecs = [OpSpecs[0], OpSpecs[1]],
+#                           accessSpecParams = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': StopTrigger, 'OperationCountValue': OCV,},})
     
 def calcChecksum(stork_message):
     checksum = 0
@@ -451,7 +496,7 @@ if __name__ == '__main__':
     args = parse_args()
     enabled_antennas = map(lambda x: int(x.strip()), args.antennas.split(','))
 
-    # Create Clients and set them to connect
+    # Create Clients and set the0m to connect
     fac = LLRPClientFactory(report_every_n_tags=args.every_n,
                             antennas=enabled_antennas,
                             tx_power=args.tx_power,
