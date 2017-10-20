@@ -25,7 +25,6 @@
  */
 
 #include <stdint.h>
-#include <stdio.h>
 #include <string.h>
 
 #define DLL_EXPORT __declspec(dllexport)
