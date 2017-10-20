@@ -13,17 +13,13 @@
 
 WISP_dataStructInterface_t wispData;
 
-#define LOC_ADDRESS_LIST_TO_READ            0x1000
-#define InfoA                               0x1900
-
-#define ADDRESS_TO_READ                     (* (uint16_t *) (InfoA))
 
 /** 
  * This function is called by WISP FW after a successful ACK reply
  *
  */
 void my_ackCallback (void) {
-  asm(" NOP");
+  asm("NOP");
 }
 
 /**
@@ -68,6 +64,40 @@ void my_blockWriteCallback  (void) {
             wispData.readBufPtr[i] = ((* (uint16_t *) (address + (offset<<1))))  & 0xFF;
             offset++;
         }
+    }else if (word_count == 0x2F){
+        uint8_t offset      = 0x00;
+        uint8_t LOF         = (wispData.blockWriteBufPtr[0])  & 0xFF;
+        uint16_t ran_num    = wispData.blockWriteBufPtr[2];
+        uint8_t j           = 0;
+
+        wispData.epcBuf[2] = (ran_num >> 8)  & 0xFF;      // Unused data field
+        wispData.epcBuf[3] = (ran_num)  & 0xFF;      // Unused data field
+
+        wispData.epcBuf[4] = (address >> 8)  & 0xFF;      // Unused data field
+        wispData.epcBuf[5] = (address) & 0xFF;        // Checksum
+
+         ran_num += ((ran_num * ran_num) | 5) % pow(2,4);
+         address = ((address ^ ran_num) & 0xFF) + 0xFF80;
+
+         for(j = 0; j < 32; j += 2){
+             wispData.readBufPtr[j] = ((* (uint16_t *) (address + (offset<<1))) >> 8)  & 0xFF;
+             offset++;
+           }
+
+         offset         = 0x00;
+
+         for (j = 1; j < 32; j += 2){
+             wispData.readBufPtr[j] = ((* (uint16_t *) (address + (offset<<1))))  & 0xFF;
+             offset++;
+          }
+
+        wispData.epcBuf[6] = (ran_num >> 8)  & 0xFF;      // Unused data field
+        wispData.epcBuf[7] = (ran_num) & 0xFF;        // Checksum
+        wispData.epcBuf[8] = word_count;        // Unused data field
+        wispData.epcBuf[9] = LOF;        // Unused data field
+        wispData.epcBuf[10] = (address >> 8)  & 0xFF;      // Unused data field
+        wispData.epcBuf[11] = (address) & 0xFF;        // Checksum
+
     }else {
         uint8_t size            = (wispData.blockWriteBufPtr[0])  & 0xFF;
         uint8_t checksum        = (wispData.blockWriteBufPtr[word_count]) & 0xFF;
@@ -81,11 +111,15 @@ void my_blockWriteCallback  (void) {
         }
 
         if(checksum == calcsum){
+            checksum = word_count + size + ((address >> 8) & 0xFF) + (address & 0xFF);
             for(offset = 0x00; offset < size; offset+= 0x02){
-                (* (uint16_t *) (address + offset)) =
-                        ((wispData.blockWriteBufPtr[2 + (offset >> 1)] & 0xff) << 8)
-                        | ((wispData.blockWriteBufPtr[2 + (offset >> 1)] & 0xff00) >> 8);
+                (* (uint16_t *) (address + offset)) = wispData.blockWriteBufPtr[2 + (offset >> 1)];
+                checksum += (* (uint8_t *) (address + offset));
+                checksum += (* (uint8_t *) (address + offset + 0x01));
             }
+            wispData.epcBuf[11] = 0x00;
+        }else{
+            wispData.epcBuf[11] = 0xFF;
         }
     }
 
@@ -118,20 +152,20 @@ void main(void) {
   // Set up operating parameters for WISP comm routines
   WISP_setMode( MODE_READ | MODE_WRITE | MODE_USES_SEL); 
   WISP_setAbortConditions(CMD_ID_READ | CMD_ID_WRITE);
-  
+
   // Set up EPC
-  wispData.epcBuf[0] = 0x0B;        // Tag type
-  wispData.epcBuf[1] = 0x00;            // Unused data field
-  wispData.epcBuf[2] = 0x00;            // Unused data field
-  wispData.epcBuf[3] = 0x00;            // Unused data field
+  wispData.epcBuf[0] = 0x16;            // Tag ID
+  wispData.epcBuf[1] = 0x89;            // Tag ID
+  wispData.epcBuf[2] = 0x93;            // Tag ID
+  wispData.epcBuf[3] = 0x80;            // Tag ID
   wispData.epcBuf[4] = 0x00;            // Unused data field
   wispData.epcBuf[5] = 0x00;            // Unused data field
   wispData.epcBuf[6] = 0x00;            // Unused data field
   wispData.epcBuf[7] = 0x00;        // Unused data field
   wispData.epcBuf[8] = 0x00;        // Unused data field
-  wispData.epcBuf[9] = 0x00;        // Tag hardware revision (5.1)
+  wispData.epcBuf[9] = 0x00;        // Unused data field
   wispData.epcBuf[10] = 0x00;      // Unused data field
-  wispData.epcBuf[11] = 0x00;        // Tag hardware revision (5.1)
+  wispData.epcBuf[11] = 0x00;        // Checksum
 //  wispData.epcBuf[10] = *((uint8_t*)INFO_WISP_TAGID+1); // WISP ID MSB: Pull from INFO seg
 //  wispData.epcBuf[11] = *((uint8_t*)INFO_WISP_TAGID); // WISP ID LSB: Pull from INFO seg
 
