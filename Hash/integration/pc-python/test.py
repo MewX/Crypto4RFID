@@ -36,6 +36,10 @@ if 'window' in system_name:
     xtea_hash = xtea_dll.HASH_XTEA_PFMD
 elif 'linux' in system_name:
     print 'linux detected'
+    xtea_dll = cdll.LoadLibrary("./xtea.so")
+    print repr(xtea_dll)
+    xtea_hash = xtea_dll.HASH_XTEA_PFMD
+    print repr(xtea_hash)
 else:
     print 'unknown system'
     sys.exit()

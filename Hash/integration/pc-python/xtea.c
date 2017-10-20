@@ -34,9 +34,6 @@ typedef uint32_t u32;
 typedef uint16_t u16;
 typedef uint8_t u8;
 
-#ifndef _MSC_VER
-extern "C" {
-#endif
 
 /* XTEA is a version of slightly improved tea.
    The plain or cypher text is in v[0], v[1].
@@ -111,6 +108,4 @@ HASH_XTEA_PFMD(uint64_t nonce, const u8 firmware[], const uint16_t size, u8 stat
     tean((uint32_t *) state, (u32 *)key, 64);
 }
 
-#ifndef _MSC_VER
-}
 #endif
