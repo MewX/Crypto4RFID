@@ -1,28 +1,28 @@
 import sys
 import os
 from joblib.logger import pformat
-import binascii
 import pprint
-import sllurp
 import logging
-from cv2 import line
+import time
 sys.path.append(os.path.abspath(os.path.join(__file__, '..', '..', '..')))
 
 from argparse import ArgumentParser
-from logging import getLogger, INFO, Formatter, StreamHandler, WARN
-from sllurp.llrp import LLRP_PORT, LLRPClientFactory, LLRPClient
+from logging import getLogger
+from sllurp.llrp import LLRP_PORT, LLRPClientFactory
 import smokesignal
 from tornado.escape import json_decode
 from tornado.platform.twisted import TwistedIOLoop
 from tornado.web import RequestHandler, Application
 from tornado.websocket import WebSocketClosedError, WebSocketHandler
-from twisted.internet import reactor, defer
-import time
+from twisted.internet import reactor
+from ctypes import *
+
+from sllurp.WModules import i2h
 
 
-from sllurp.WControlModules import WiRead
-
-from sllurp.WModules import AccessSpecFactory as ASF, h2i, i2h
+# Hash function 
+xtea_dll = cdll.LoadLibrary("./hash/xtea.so")
+hashChecksum        = 0
 
 # WISP Control global variables.
 fac                 = None
@@ -389,7 +389,7 @@ def BlockReadAccess(pto, arg):
 
 def BlockChallengeAccess(pto, arg):
 
-    global OpSpecs, proto, OpSpecsIdx, accessId, wordCnt
+    global OpSpecs, proto, OpSpecsIdx, accessId, wordCnt, hashChecksum
     proto           =  pto
     OpSpecsIdx      = 2
     accessId        = 1
@@ -398,6 +398,8 @@ def BlockChallengeAccess(pto, arg):
     start_address           = arg['startAddr']
     lengthofFramwork        = int(arg['LOF'], 16)    
     ran_num                 = arg['user-RanNum-Att']
+    hashChecksum            = generateHashCheckSum(start_address, lengthofFramwork, int(ran_num, 16))
+    print hashChecksum
 #     wordCnt                 = str(int('{:02X}'.format(lengthofFramwork / bytes_per_read)) - 4)
     OpSpecs                 = []
     cnt                     = 1
@@ -415,8 +417,8 @@ def BlockChallengeAccess(pto, arg):
     
     print OpSpecs
     
-    proto.startAccessSpec(None, opSpecs = [OpSpecs[0], OpSpecs[1]],
-        accessSpecParams = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': StopTrigger, 'OperationCountValue': OCV,},})
+#     proto.startAccessSpec(None, opSpecs = [OpSpecs[0], OpSpecs[1]],
+#         accessSpecParams = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': StopTrigger, 'OperationCountValue': OCV,},})
     
         
 def ReadWriteAccess(proto, arg):
@@ -458,12 +460,37 @@ def ReadWriteAccess(proto, arg):
         return proto.startAccess(readWords=None,
             writeWords=[writeSpecParam],accessStopParam = {'AccessSpecStopTriggerType': 1, 'OperationCountValue': 5,})
 
-
-
-    
-
 #     proto.startAccessSpec(None, opSpecs = [OpSpecs[0], OpSpecs[1]],
 #                           accessSpecParams = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': StopTrigger, 'OperationCountValue': OCV,},})
+    
+def generateHashCheckSum(addr, size, ranN) :
+    
+    f               = open("./hash/WISPdata.bin", "rb")
+    wispDataLine    = f.readlines()
+    data            = ''
+    sIdx            = int(addr, 16) - 0x4400 # 0x0 === 0x4400
+    l               = int(size, 16) 
+    
+    print (sIdx*2) + l;
+    for i in range(0,len(wispDataLine)-1):
+        data += wispDataLine[i]
+        
+    print repr(data.encode('hex')[(sIdx*2):(sIdx*2)+l])
+    print repr(xtea_dll)
+    xtea_hash = xtea_dll.HASH_XTEA_PFMD
+    print repr(xtea_hash)
+    
+    # prepare for the parameters
+    text = data[sIdx:sIdx+l]
+    nonce = c_uint64(ranN) # 64-bit initial value
+    plain_text = create_string_buffer(text, len(text)) # string to byte array
+    text_size = c_uint16(len(text));
+    final_hash = c_uint64(0) # 64-bit
+    
+    # call the hash function and get final results
+    xtea_hash(nonce, c_void_p(addressof(plain_text)), text_size, c_void_p(addressof(final_hash)))
+    return (hex(final_hash.value))
+    
     
 def calcChecksum(stork_message):
     checksum = 0
@@ -473,6 +500,8 @@ def calcChecksum(stork_message):
     return "{:04x}".format(checksum)
 
 if __name__ == '__main__':
+    
+#     print(generateHashCheckSum('4453', '2', 0x1234567891234567))
     
     init_logging()
     # Set up tornado to use reactor
