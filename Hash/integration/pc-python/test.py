@@ -51,5 +51,5 @@ text_size = c_uint16(len(test_str));
 final_hash = c_uint64(0) # 64-bit
 
 # call the hash function and get final results
-xtea_hash(nonce, plain_text, text_size, addressof(final_hash))
+xtea_hash(nonce, c_void_p(addressof(plain_text)), text_size, c_void_p(addressof(final_hash)))
 print repr(hex(final_hash.value))
