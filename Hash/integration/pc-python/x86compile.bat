@@ -1,5 +1,5 @@
 
-cl /LD xtea.cpp
+cl /LD xtea.c
 
 @echo off
 rem cl.exe /D_USRDLL /D_WINDLL xtea.cpp /MT /link /DLL /OUT:xtea.dll

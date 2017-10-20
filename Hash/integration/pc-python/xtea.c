@@ -27,12 +27,16 @@
 #include <stdint.h>
 #include <string.h>
 
+#ifdef _MSC_VER
 #define DLL_EXPORT __declspec(dllexport)
+#endif
 typedef uint32_t u32;
 typedef uint16_t u16;
 typedef uint8_t u8;
 
+#ifndef _MSC_VER
 extern "C" {
+#endif
 
 /* XTEA is a version of slightly improved tea.
    The plain or cypher text is in v[0], v[1].
@@ -65,7 +69,14 @@ void tean(uint32_t *v, uint32_t *k,uint32_t ncycles)      /* replaces TEA's code
  * Prefix-free Merkle Damgard construction:
  * message length is the first block, and the block size is key-size.
  */
-DLL_EXPORT void __stdcall HASH_XTEA_PFMD(uint64_t nonce, const u8 firmware[], const uint16_t size, u8 state[8])
+#ifdef _MSC_VER
+DLL_EXPORT
+#endif
+void
+#ifdef _MSC_VER
+__stdcall
+#endif
+HASH_XTEA_PFMD(uint64_t nonce, const u8 firmware[], const uint16_t size, u8 state[8])
 {
     u16 idx = 0;
     u8 key[16] = { 0 }; // temp key
@@ -99,7 +110,7 @@ DLL_EXPORT void __stdcall HASH_XTEA_PFMD(uint64_t nonce, const u8 firmware[], co
     }
     tean((uint32_t *) state, (u32 *)key, 64);
 }
+
+#ifndef _MSC_VER
 }
-
 #endif
-
