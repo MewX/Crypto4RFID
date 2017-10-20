@@ -1,5 +1,8 @@
 from ctypes import *
+import platform
+import sys
 
+# the following codes show how to convert tuple into string in python
 test_input = [
 0x81,0x00,0x00,0x24,0xb0,0x13,0xf0,0x44,0x0c,0x43,0xb0,0x13,0x34,0x44,0xb0,0x13,
 0xea,0x44,0x4f,0x14,0xc2,0x43,0x1c,0x02,0xb0,0x13,0xd2,0x44,0x4b,0x16,0x00,0x13,
@@ -23,16 +26,26 @@ for i in range(len(test_input)):
 print repr(test_str)
 print "len:", len(test_input)
 
-# load dll on windows
-xtea_dll = windll.xtea
-xtea_hash = xtea_dll.HASH_XTEA_PFMD
+# here's the main hash function, be sure that you've compiled the library first
+system_name = platform.system().lower()
+print "platform name:", system_name
+if 'window' in system_name:
+    # load dll on windows
+    print 'windows detected'
+    xtea_dll = windll.xtea
+    xtea_hash = xtea_dll.HASH_XTEA_PFMD
+elif 'linux' in system_name:
+    print 'linux detected'
+else:
+    print 'unknown system'
+    sys.exit()
 
-nonce = c_uint64(0x1234567887654321)
-print repr(nonce)
-plain_text = create_string_buffer(test_str, len(test_str))
+# prepare for the parameters
+nonce = c_uint64(0x1234567887654321) # 64-bit initial value
+plain_text = create_string_buffer(test_str, len(test_str)) # string to byte array
 text_size = c_uint16(len(test_str));
-final_hash = create_string_buffer(8)
-print repr(final_hash.raw)
+final_hash = c_uint64(0) # 64-bit
 
-xtea_hash(nonce, addressof(plain_text), text_size, addressof(final_hash))
-print repr(final_hash.raw)
+# call the hash function and get final results
+xtea_hash(nonce, plain_text, text_size, addressof(final_hash))
+print repr(hex(final_hash.value))
