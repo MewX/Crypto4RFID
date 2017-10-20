@@ -23,6 +23,7 @@ from sllurp.WModules import i2h
 # Hash function 
 xtea_dll = cdll.LoadLibrary("./hash/xtea.so")
 hashChecksum        = 0
+hashAddr            = 0x4400
 
 # WISP Control global variables.
 fac                 = None
@@ -147,7 +148,7 @@ def tag_seen_callback(llrpMsg):
                         if ("ReadData" in tag["OpSpecResult"][ops]):
                             logger.info("Readdata = " + tag["OpSpecResult"][ops]["ReadData"] + " accessType :" + accessType)
                             
-                            if (accessType == 'readWisp' or accessType == 'readWispAtt') :
+                            if (accessType == 'readWisp') :
                                 # AsscessSpec Reading message for WISP5
                                 logger.info("OpSpecsIdx : " + str(OpSpecsIdx) + " OpSpecs.__len__(): " + str(OpSpecs.__len__()) )
                                 smokesignal.emit('rfid', {
@@ -162,6 +163,16 @@ def tag_seen_callback(llrpMsg):
                                     fac.nextAccessSpec(opSpecs = [OpSpecs[OpSpecsIdx], OpSpecs[OpSpecsIdx+1]], 
                                         accessSpec = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': 1, 'OperationCountValue': 1,},})
                                     OpSpecsIdx += 2
+                            elif(accessType == 'readWispAtt') :
+                                
+                                receivedChkSum = tag["OpSpecResult"][ops]["ReadData"];
+                                logger.info("receivedChkSum : " + receivedChkSum + " hashChecksum : " + hashChecksum)
+                                if(receivedChkSum == hashChecksum) :
+                                    smokesignal.emit('rfid', {
+                                        'attestation': [{'result' : 'success'}],})
+                                else :
+                                    smokesignal.emit('rfid', {
+                                        'attestation': [{'result' : 'fail'}],})                                    
                                 
                             else :
                                 # Result for Normal tags
@@ -270,13 +281,13 @@ def getBlockWriteMessage(OpSpecID, count, content):
     }
     return write_message 
 
-def getReadMessage(OpSpecID):
+def getReadMessage(OpSpecID, wCount = wordCnt):
     read_message = {
         'OpSpecID': OpSpecID,
         "MB": 3, # EPC = 1 user memory = 3
         "WordPtr": 0,
         "AccessPassword": 0,
-        "WordCount": wordCnt,
+        "WordCount": wCount,
     }
     print (read_message)
     
@@ -393,32 +404,26 @@ def BlockChallengeAccess(pto, arg):
     proto           =  pto
     OpSpecsIdx      = 2
     accessId        = 1
-    wordCnt         = str(int('{:02X}'.format(bytes_per_read)) - 4)
+#     wordCnt         = str(int('{:02X}'.format(bytes_per_read)) - 4)
 
     start_address           = arg['startAddr']
-    lengthofFramwork        = int(arg['LOF'], 16)    
+    lengthofFramwork        = arg['LOF']
     ran_num                 = arg['user-RanNum-Att']
     hashChecksum            = generateHashCheckSum(start_address, lengthofFramwork, int(ran_num, 16))
     print hashChecksum
 #     wordCnt                 = str(int('{:02X}'.format(lengthofFramwork / bytes_per_read)) - 4)
     OpSpecs                 = []
-    cnt                     = 1
     
-    # for i in range(0,len(hexFileLines)-1):
-    for j in range(0, lengthofFramwork, bytes_per_read):
-        print i2h(j)
-        hexContent = AttesSpecType + i2h(j)[2:] +  start_address + ran_num
-        print ("hexContent  : ", hexContent)
-        OpSpecs.append(getBlockWriteMessage(cnt, (len(hexContent) / 4), hexContent))
-        OpSpecs.append(getReadMessage((cnt * 10) + 1))
-        cnt += 1
+    hexContent = AttesSpecType + lengthofFramwork +  start_address + ran_num
+    OpSpecs.append(getBlockWriteMessage(1, (len(hexContent) / 4), hexContent))
+    OpSpecs.append(getReadMessage(11, 4))
 
     startTimeMeasurement()
     
     print OpSpecs
     
-#     proto.startAccessSpec(None, opSpecs = [OpSpecs[0], OpSpecs[1]],
-#         accessSpecParams = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': StopTrigger, 'OperationCountValue': OCV,},})
+    proto.startAccessSpec(None, opSpecs = [OpSpecs[0], OpSpecs[1]],
+        accessSpecParams = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': StopTrigger, 'OperationCountValue': OCV,},})
     
         
 def ReadWriteAccess(proto, arg):
@@ -468,7 +473,7 @@ def generateHashCheckSum(addr, size, ranN) :
     f               = open("./hash/WISPdata.bin", "rb")
     wispDataLine    = f.readlines()
     data            = ''
-    sIdx            = int(addr, 16) - 0x4400 # 0x0 === 0x4400
+    sIdx            = int(addr, 16) - hashAddr # 0x0 === 0x4400
     l               = int(size, 16) 
     
     print (sIdx*2) + l;
