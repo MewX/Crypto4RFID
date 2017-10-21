@@ -165,7 +165,6 @@ $(document).ready(function() {
     });
     
     $("#readBtn").click(function(){
-    	console.log(mode + " == " + attMode);
     	if(mode){
     		$("#readDiv").slideToggle("slow");
     	}else if(!mode && !attMode){
@@ -183,10 +182,11 @@ $(document).ready(function() {
     	}
     });
     
-    $("#generatorBtn").click(function(){
-    	if(!mode){
-    		$("#generatorDiv").slideToggle("slow");
+    $("#attestationBtn").click(function(){
+    	if(mode){
+    		$('#RFID-mode').bootstrapToggle("off");
     	}
+    	$("#readWispAttDiv").slideToggle("slow");
     });
     
     $(':file').on('fileselect', function(event, numFiles, label) {

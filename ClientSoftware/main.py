@@ -23,7 +23,7 @@ from sllurp.WModules import i2h
 # Hash function 
 xtea_dll = cdll.LoadLibrary("./hash/xtea.so")
 hashChecksum        = 0
-hashAddr            = 0x4400
+hashAddr            = 0x1800
 
 # WISP Control global variables.
 fac                 = None
@@ -192,7 +192,7 @@ def tag_seen_callback(llrpMsg):
                                     'writeWispTags': [{'writeWisp' : hexFileLines[hexFileIdx]
                                                       , 'EPCvalue' : tag["EPC-96"]
                                                       , 'OpSpecId' : tag["OpSpecResult"][ops]["OpSpecID"] 
-                                                      , 'status' : 'Failed'} ],})  
+                                                      , 'status' : 'Failed'} ],})
                                 
                         elif(2 < tag["OpSpecResult"][ops]["NumWordsWritten"]):  
                             if (accessType == 'writeWisp') :
@@ -415,6 +415,7 @@ def BlockChallengeAccess(pto, arg):
     OpSpecs                 = []
     
     hexContent = AttesSpecType + lengthofFramwork +  start_address + ran_num
+    print hexContent
     OpSpecs.append(getBlockWriteMessage(1, (len(hexContent) / 4), hexContent))
     OpSpecs.append(getReadMessage(11, 4))
 
@@ -470,17 +471,18 @@ def ReadWriteAccess(proto, arg):
     
 def generateHashCheckSum(addr, size, ranN) :
     
-    f               = open("./hash/WISPdata.bin", "rb")
+    f               = open("./hash/hashTest2.hex", "rb")
     wispDataLine    = f.readlines()
     data            = ''
     sIdx            = int(addr, 16) - hashAddr # 0x0 === 0x4400
-    l               = int(size, 16) 
+    l               = int(size, 16) * 2
     
-    print (sIdx*2) + l;
-    for i in range(0,len(wispDataLine)-1):
+    print l;
+    for i in range(0,len(wispDataLine)):
         data += wispDataLine[i]
-        
-    print repr(data.encode('hex')[(sIdx*2):(sIdx*2)+l])
+     
+    print repr(data)    
+    print repr(data[(sIdx*2):(sIdx*2)+l])
     print repr(xtea_dll)
     xtea_hash = xtea_dll.HASH_XTEA_PFMD
     print repr(xtea_hash)
@@ -506,7 +508,7 @@ def calcChecksum(stork_message):
 
 if __name__ == '__main__':
     
-#     print(generateHashCheckSum('4453', '2', 0x1234567891234567))
+    print(generateHashCheckSum('1800', '80', 0x1234567891234567))
     
     init_logging()
     # Set up tornado to use reactor
