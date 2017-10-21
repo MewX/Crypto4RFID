@@ -10,7 +10,7 @@
 
 
 #include "wisp-base.h"
-
+#include "xtea.h"
 WISP_dataStructInterface_t wispData;
 
 
@@ -65,38 +65,38 @@ void my_blockWriteCallback  (void) {
             offset++;
         }
     }else if (word_count == 0x2F){
-        uint8_t offset      = 0x00;
-        uint8_t LOF         = (wispData.blockWriteBufPtr[0])  & 0xFF;
-        uint16_t ran_num    = wispData.blockWriteBufPtr[2];
-        uint8_t j           = 0;
+        WDTCTL = WDTPW + WDTHOLD;
 
-        wispData.epcBuf[2] = (ran_num >> 8)  & 0xFF;      // Unused data field
-        wispData.epcBuf[3] = (ran_num)  & 0xFF;      // Unused data field
+        uint16_t LOF         = (wispData.blockWriteBufPtr[0])  & 0xFF;
+//        uint64_t ran_num     = ((uint64_t)wispData.blockWriteBufPtr[2] << 48) | ((uint64_t)wispData.blockWriteBufPtr[3] << 32) |  ((uint64_t)wispData.blockWriteBufPtr[4] << 16) | (uint64_t)wispData.blockWriteBufPtr[5];
+        uint8_t j            = 0;
+//        uint64_t checksum    = 0x4159ffbeba74ab97;
+        uint64_t checksum;
+        uint64_t ran_num     = 0x1234567891234567;
 
-        wispData.epcBuf[4] = (address >> 8)  & 0xFF;      // Unused data field
-        wispData.epcBuf[5] = (address) & 0xFF;        // Checksum
+//         ran_num += ((ran_num * ran_num) | 5) % pow(2,4);
+//         address = ((address ^ ran_num) & 0xFF) + 0xFF80;
 
-         ran_num += ((ran_num * ran_num) | 5) % pow(2,4);
-         address = ((address ^ ran_num) & 0xFF) + 0xFF80;
+//         //Calculate checksum.
+         HASH_XTEA_PFMD(ran_num, (uint8_t *)0x1800, (uint16_t)80, (uint8_t *)&checksum);
 
-         for(j = 0; j < 32; j += 2){
-             wispData.readBufPtr[j] = ((* (uint16_t *) (address + (offset<<1))) >> 8)  & 0xFF;
-             offset++;
-           }
+//
+//         do wispData.readBufPtr[j++] = checksum  & 0xFF;
+//                 while (checksum>>=8);
 
-         offset         = 0x00;
-
-         for (j = 1; j < 32; j += 2){
-             wispData.readBufPtr[j] = ((* (uint16_t *) (address + (offset<<1))))  & 0xFF;
-             offset++;
-          }
-
-        wispData.epcBuf[6] = (ran_num >> 8)  & 0xFF;      // Unused data field
-        wispData.epcBuf[7] = (ran_num) & 0xFF;        // Checksum
-        wispData.epcBuf[8] = word_count;        // Unused data field
-        wispData.epcBuf[9] = LOF;        // Unused data field
-        wispData.epcBuf[10] = (address >> 8)  & 0xFF;      // Unused data field
-        wispData.epcBuf[11] = (address) & 0xFF;        // Checksum
+//         for(j = 0; j < 8; j += 1){
+//             wispData.readBufPtr[j] = ((* (uint64_t *) checksum >> 8))  & 0xFF;
+//           }
+        wispData.epcBuf[2] = (wispData.blockWriteBufPtr[2]  >> 8) & 0xFF;
+        wispData.epcBuf[3] = (wispData.blockWriteBufPtr[2]);
+        wispData.epcBuf[4] = (checksum >> 56) & 0xFF;
+        wispData.epcBuf[5] = (checksum >> 48) & 0xFF;
+        wispData.epcBuf[6] = (checksum >> 40)  & 0xFF;
+        wispData.epcBuf[7] = (checksum >> 32)  & 0xFF;
+        wispData.epcBuf[8] = (checksum >> 24)  & 0xFF;        // Unused data field
+        wispData.epcBuf[9] = (checksum >> 16)  & 0xFF;        // Unused data field
+        wispData.epcBuf[10] = (checksum >> 8)  & 0xFF;      // Unused data field
+        wispData.epcBuf[11] = checksum  & 0xFF;        // Checksum
 
     }else {
         uint8_t size            = (wispData.blockWriteBufPtr[0])  & 0xFF;
@@ -169,11 +169,8 @@ void main(void) {
 //  wispData.epcBuf[10] = *((uint8_t*)INFO_WISP_TAGID+1); // WISP ID MSB: Pull from INFO seg
 //  wispData.epcBuf[11] = *((uint8_t*)INFO_WISP_TAGID); // WISP ID LSB: Pull from INFO seg
 
-//  FRAM_init();
-//  uint32_t* myData2 = 0xABCD;
-//  FRAM_write_infoA_long(0,1, myData2);
-
   // Talk to the RFID reader.
+
   while (FOREVER) {
     WISP_doRFID();
   }
