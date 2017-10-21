@@ -1,0 +1,24 @@
+<div class="btn-group">
+	<form>
+		<button type="button" class="btn btn-primary" id="readBtn">Read Data</button>
+	</form>
+	<form>
+		<button type="button" class="btn btn-warning" id="writeBtn">Write Data</button>
+	</form>
+	<form method="post" id="pauseForm">
+		<button type="submit" class="btn btn-danger">PAUSE</button>
+	</form>
+	<form method="post" id="resumeForm">
+		<button type="submit" class="btn btn-success">RESUME</button>
+	</form>
+	<form>
+		<button type="button" class="btn btn-info" id="attestationBtn">Attestation</button>
+	</form>
+	<div id="secure-modes" style="display:none;">
+		<input id="RFID-secure-mode" type="checkbox" checked data-toggle="toggle" data-onstyle="success" data-size="small" data-on="Normal" data-off="Attestation" data-offstyle="danger">
+	</div>
+	<div id="modes">
+		<input id="RFID-mode" type="checkbox" checked data-toggle="toggle" data-onstyle="info" data-size="small" data-on="Gen2" data-off="WISP" data-offstyle="warning">
+	</div>
+</div>
+
