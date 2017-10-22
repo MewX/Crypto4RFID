@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 from ctypes import *
 import platform
 import sys
@@ -23,25 +25,25 @@ test_input = [
 test_str = ''
 for i in range(len(test_input)):
     test_str += chr(test_input[i])
-print repr(test_str)
-print "len:", len(test_input)
+#print(repr(test_str))
+print("len:", len(test_input))
 
 # here's the main hash function, be sure that you've compiled the library first
 system_name = platform.system().lower()
-print "platform name:", system_name
+print("platform name:", system_name)
 if 'window' in system_name:
     # load dll on windows
-    print 'windows detected'
+    print('windows detected')
     xtea_dll = windll.xtea
     xtea_hash = xtea_dll.HASH_XTEA_PFMD
 elif 'linux' in system_name:
-    print 'linux detected'
+    print('linux detected')
     xtea_dll = cdll.LoadLibrary("./xtea.so")
-    print repr(xtea_dll)
+    print(repr(xtea_dll))
     xtea_hash = xtea_dll.HASH_XTEA_PFMD
-    print repr(xtea_hash)
+    print(repr(xtea_hash))
 else:
-    print 'unknown system'
+    print('unknown system')
     sys.exit()
 
 # prepare for the parameters
@@ -52,4 +54,4 @@ final_hash = c_uint64(0) # 64-bit
 
 # call the hash function and get final results
 xtea_hash(nonce, c_void_p(addressof(plain_text)), text_size, c_void_p(addressof(final_hash)))
-print repr(hex(final_hash.value))
+print(repr(hex(final_hash.value)))
