@@ -22,8 +22,13 @@
 /**
  * as a unique ID.
  */
-#include<stdint.h>
+#include <stdint.h>
+
+#ifndef SMHASHER
 #include <msp430.h>
+#else
+#include <stdio.h>
+#endif
 
 typedef uint32_t u32;
 typedef uint16_t u16;
@@ -55,106 +60,133 @@ void tean(uint32_t *v, uint32_t *k,uint32_t ncycles)      /* replaces TEA's code
     return;
 }
 
-void __attribute__ ((noinline)) HASH_XTEA(uint64_t nonce, const u8 firmware[], const uint16_t size, u8 state[8])
+/**
+ * FOR: 64b block, 128b key
+ * Prefix-free Merkle Damgard construction:
+ * message length is the first block, and the block size is key-size.
+ */
+void HASH_XTEA_PFMD(uint64_t nonce, const u8 firmware[], const uint16_t size, u8 state[8])
 {
-    // write codes here
     u16 idx = 0;
-    u32 key[4];
-    u16 residual = size;
-    memcpy(state, &nonce, sizeof(uint64_t)); // 16 * 8 = 128 key
+    u8 key[16] = { 0 }; // temp key
+    u16 residual = size; // message length in bytes
+    *(uint64_t *)state = nonce;
 
-#define ROUND_SIZE 16
-    for(;idx<size-ROUND_SIZE;idx+=ROUND_SIZE){     //first n blocks
+    // decrypt "length" first
+    memcpy(key, &size, 2); // copy length into key to make it prefix-free
+    tean((uint32_t *) state, (u32 *)key, 64);
+
+    // decrypt main message
+#undef ROUND_SIZE
+#define ROUND_SIZE 16 // key size in bytes
+    for (; idx + ROUND_SIZE < size; idx += ROUND_SIZE)
+    {     //first n blocks
         //printf("Processing idx = %d: ", idx);
         //for (i = 0; i < ROUND_SIZE; i ++) printf("0x%02X ", firmware[idx + i]);
         //printf("\n");
-        memcpy(key, (firmware+(idx*sizeof(uint8_t))), ROUND_SIZE);
-        tean((uint32_t *)state, key, 64);
+        memcpy(key, firmware + (idx), ROUND_SIZE);
+        tean((u32 *) state, (u32 *)key, 64);
     }
     residual = size - idx; //how many bytes left not hashed
     //printf("Last idx = %d; residual = %d.\n", idx, residual);
 
-    //last block if firmware is not whole multiple of 128 bit
-    memcpy(key, (firmware+(idx*sizeof(uint8_t))), residual);
-    memset(key + residual, 0, ROUND_SIZE - residual);
-    tean((uint32_t *)state, key, 64);//fill the missing byte with 0
+    // last block
+    memcpy(key, firmware + idx, residual);
+    if (ROUND_SIZE - residual >= 1)
+    {
+        memset(key + residual, 0x80, 1); // padding, first byte 0b10000000
+        memset(key + residual + 1, 0, ROUND_SIZE - residual - 1); // then all 0x00
+    }
+    tean((uint32_t *) state, (u32 *)key, 64);
 }
 
+/**
+ * FOR: 64b block, 128b key
+ * write codes here: Miyaguchiï¿½CPreneel
+ * input:
+ * nonce 8 bytes -> key 16 bytes (padding zeros)
+ * message 8 bytes -> message 8 bytes
+ */
 void __attribute__ ((noinline)) HASH_XTEA_MP(uint64_t nonce, const u8 firmware[], const uint16_t size, u8 state[8])
 {
-    // write codes here: Miyaguchi¨CPreneel
-    // input:
-    // nonce 8 bytes -> key 16 bytes (copy)
-    // message 8 bytes -> message 8 bytes
     u16 idx = 0;
     u32 key[4];
     u16 residual = size;
     u8 nextState[8] = {0};
-    memcpy(key, &nonce, sizeof(uint64_t));
-    memcpy(&key[2], &nonce, sizeof(uint64_t)); // key from nonce
-
+    memcpy(key, &nonce, 8); // first 64b
+    memset(&key[2], 0, 8); // last 64b ->
+#undef ROUND_SIZE
 #define ROUND_SIZE 8 // message size
-    for(;idx<size-ROUND_SIZE;idx+=ROUND_SIZE){     //first n blocks
-        //printf("Processing idx = %d: ", idx);
-        //for (i = 0; i < ROUND_SIZE; i ++) printf("0x%02X ", firmware[idx + i]);
-        //printf("\n");
-        memcpy(key, state, sizeof(uint64_t));
-        memcpy(&key[2], state, sizeof(uint64_t)); // new state is used as key
-        memcpy(nextState, firmware+(idx*sizeof(uint8_t)), sizeof(uint64_t));
+    for (; idx + ROUND_SIZE < size; idx += ROUND_SIZE)
+    {
+        // prepare ctext
+        memcpy(nextState, firmware + idx, 8);
+        memcpy(state, nextState, 8);
 
-        tean((uint32_t *)nextState, key, 64);
+        // decipher
+        tean((uint32_t *) nextState, key, 64);
 
-        *(uint64_t *)nextState ^= *(uint64_t *)key ^ *(uint64_t *)state;
-        memcpy(state, nextState, sizeof(uint64_t));
+        // calc next state
+        *(uint64_t *) state ^= *(uint64_t *) key ^ *(uint64_t *) nextState;
+
+        // update key
+        memcpy(key, state, 8);
+        memset(&key[2], 0, 8); // last 64b
     }
     residual = size - idx; //how many bytes left not hashed
     //printf("Last idx = %d; residual = %d.\n", idx, residual);
 
-    //last block if firmware is not whole multiple of 128 bit
-    memcpy(key, state, sizeof(uint64_t));
-    memcpy(&key[2], state, sizeof(uint64_t)); // new state is used as key
-    memcpy(nextState, (firmware+(idx*sizeof(uint8_t))), residual);
-    memset(nextState + residual, 0, ROUND_SIZE - residual);
-    tean((uint32_t *)nextState, key, 64);//fill the missing byte with 0
-    *(uint64_t *)nextState ^= *(uint64_t *)key ^ *(uint64_t *)state;
-    memcpy(state, nextState, sizeof(uint64_t));
+    // last block
+    memcpy(nextState, firmware + idx, residual);
+    memset(nextState + residual, 0, ROUND_SIZE - residual); // fill the missing bytes with 0
+    memcpy(state, nextState, 8);
+    tean((uint32_t *) nextState, key, 64);
+    *(uint64_t *) state ^= *(uint64_t *) key ^ *(uint64_t *) nextState;
 }
 
+/**
+ * FOR: 64b block, 128b key
+ * write codes here: Matyas-Meyer-Osea
+ * input:
+ * nonce 8 bytes -> key 16 bytes (padding zeros)
+ * message 8 bytes -> message 8 bytes
+ */
 void __attribute__ ((noinline)) HASH_XTEA_MMO(uint64_t nonce, const u8 firmware[], const uint16_t size, u8 state[8])
 {
-    // write codes here: Miyaguchi¨CPreneel
-    // input:
-    // nonce 8 bytes -> key 16 bytes (copy)
-    // message 8 bytes -> message 8 bytes
     u16 idx = 0;
     u32 key[4];
     u16 residual = size;
     u8 nextState[8] = {0};
-    memcpy(key, &nonce, sizeof(uint64_t));
-    memcpy(&key[2], &nonce, sizeof(uint64_t)); // key from nonce
+    memcpy(key, &nonce, 8); // first 64b
+    memset(&key[2], 0, 8); // last 64b ->
 
+#undef ROUND_SIZE
 #define ROUND_SIZE 8 // message size
-    for(;idx<size-ROUND_SIZE;idx+=ROUND_SIZE){     //first n blocks
-        //printf("Processing idx = %d: ", idx);
-        //for (i = 0; i < ROUND_SIZE; i ++) printf("0x%02X ", firmware[idx + i]);
-        //printf("\n");
-        memcpy(key, state, sizeof(uint64_t));
-        memcpy(&key[2], state, sizeof(uint64_t)); // new state is used as key
-        memcpy(nextState, firmware+(idx*sizeof(uint8_t)), sizeof(uint64_t));
+    for (; idx + ROUND_SIZE < size; idx += ROUND_SIZE)
+    {
+        // prepare ctext
+        memcpy(nextState, firmware + idx, 8);
+        memcpy(state, nextState, 8);
 
-        tean((uint32_t *)nextState, key, 64);
-        *(uint64_t *)state = *(uint64_t *)nextState ^ *(uint64_t *)key;
+        // decipher
+        tean((uint32_t *) nextState, key, 64);
+
+        // calc next state
+        *(uint64_t *) state ^= *(uint64_t *) nextState; // simply remove key from MP
+
+        // update key
+        memcpy(key, state, 8);
+        memset(&key[2], 0, 8); // last 64b
     }
     residual = size - idx; //how many bytes left not hashed
     //printf("Last idx = %d; residual = %d.\n", idx, residual);
 
-    //last block if firmware is not whole multiple of 128 bit
-    memcpy(key, state, sizeof(uint64_t));
-    memcpy(&key[2], state, sizeof(uint64_t)); // new state is used as key
-    memcpy(nextState, (firmware+(idx*sizeof(uint8_t))), residual);
-    memset(nextState + residual, 0, ROUND_SIZE - residual);
-    tean((uint32_t *)nextState, key, 64);//fill the missing byte with 0
-    *(uint64_t *)state = *(uint64_t *)nextState ^ *(uint64_t *)key;
+    // last block
+    memcpy(nextState, firmware + idx, residual);
+    memset(nextState + residual, 0, ROUND_SIZE - residual); // fill the missing bytes with 0
+    memcpy(state, nextState, 8);
+    tean((uint32_t *) nextState, key, 64);
+    *(uint64_t *) state ^= *(uint64_t *) nextState;
 }
 
 #endif /* XTEA_H_ */

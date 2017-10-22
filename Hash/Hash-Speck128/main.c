@@ -21,10 +21,10 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 //#define AES_HASH
 
 #ifndef AES_HASH
-#include "speck128.h"
+//#include "aessoft.h"
 //#include "lblock.h"
 //#include "lblockv2.h"
-//#include "xtea.h"
+#include "xtea.h"
 #else
 #include "aeshard.h"
 #endif
@@ -57,15 +57,15 @@ int main()
     uint64_t nonce = 0x0102030405060708;// nonce know by both side, protect reply attack
 
 #ifndef AES_HASH
-    uint64_t s;
+    uint64_t s[2] = {0};
 #else
     uint8_t s[16];
 #endif
 
 #ifndef AES_HASH
-    HASH_SPECK128(nonce, App1, App1_size, (uint32_t *)&s);
+    //HASH_AES_MP(nonce, App1, App1_size, (uint8_t *)s);
     //HASH_LBLOCK(nonce, App1, App1_size, (uint8_t *)&s);
-    //HASH_XTEA(nonce, App1, App1_size, (uint8_t *)&s);
+    HASH_XTEA_PFMD(nonce, App1, App1_size, (uint8_t *)&s);
     //HASH_XTEA_MP(nonce, App1, App1_size, (uint8_t *)&s);
     //HASH_XTEA_MMO(nonce, App1, App1_size, (uint8_t *)&s);
 #else

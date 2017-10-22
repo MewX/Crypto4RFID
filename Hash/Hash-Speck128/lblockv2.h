@@ -17,6 +17,7 @@ typedef uint32_t u32;
 typedef uint16_t u16;
 typedef uint8_t u8;
 
+#undef NBROUND
 #define NBROUND 32
 
 #define KSIZE 80
@@ -74,7 +75,7 @@ void EncryptKeySchedule(u8 key[10], u8 output[NBROUND][4])
      }
 }
 
-
+#define Swap Lblock_swap
 void Swap(u8 block[8])
 {
     u8 tmp[4];
@@ -132,6 +133,7 @@ void OneRound_Inv(u8 y[8], u8 k[4])
     y[3] = tmp[0];
 }
 
+#define Decrypt LBlock_Decrypt
 void Decrypt(u8 x[8], u8 subkey[NBROUND][4])
 {
     int8_t i;
@@ -143,34 +145,148 @@ void Decrypt(u8 x[8], u8 subkey[NBROUND][4])
     }
 }
 
-void __attribute__ ((noinline)) HASH_LBLOCK(uint64_t nonce, const u8 firmware[], const uint16_t size, u8 state[8])
+//------------------------------------------------
+/**
+ * FOR: 64b block, 80b key
+ * Prefix-free Merkle Damgard construction:
+ * message length is the first block, and the block size is key-size.
+ */
+void HASH_LBLOCK_PFMD(uint64_t nonce, const u8 firmware[], const uint16_t size, u8 state[8])
 {
-    // write codes here
-#define ROUND_SIZE 10
-    u8 mkey[ROUND_SIZE];
+#undef ROUND_SIZE
+#define ROUND_SIZE 10 // key size in bytes
+    u16 idx = 0;
+    u16 residual = size; // message length in bytes
+    u8 key[ROUND_SIZE] = {0};
     u8 rkey[NBROUND][4];
 
-    u16 idx = 0;
-    u16 residual = size;
-    memcpy(state, &nonce, sizeof(uint64_t)); // 16 * 8 = 128 key
-    for(;idx<size-ROUND_SIZE;idx+=ROUND_SIZE){     //first n blocks
-        //printf("Processing idx = %d: ", idx);
-        //for (i = 0; i < ROUND_SIZE; i ++) printf("0x%02X ", firmware[idx + i]);
-        //printf("\n");
-        memcpy(mkey, (firmware+(idx*sizeof(uint8_t))), ROUND_SIZE);
+    // decrypt "length" first
+    *(uint64_t *)state = nonce;
+    memcpy(key, &size, 2); // copy length into key to make it prefix-free
+    EncryptKeySchedule(key,rkey);
+    Decrypt(state, rkey);
 
-        EncryptKeySchedule(mkey,rkey);
+    // decrypt main message
+    for (; idx + ROUND_SIZE < size; idx += ROUND_SIZE)
+    {
+        memcpy(key, firmware + idx, ROUND_SIZE);
+
+        EncryptKeySchedule(key,rkey);
         Decrypt(state, rkey);
     }
     residual = size - idx; //how many bytes left not hashed
     //printf("Last idx = %d; residual = %d.\n", idx, residual);
 
-    //last block if firmware is not whole multiple of 128 bit
-    memcpy(mkey, (firmware+(idx*sizeof(uint8_t))), residual);
-    memset(mkey + residual, 0, ROUND_SIZE - residual);
-
-    EncryptKeySchedule(mkey,rkey);
-    Decrypt(state, rkey); //fill the missing byte with 0
+    // last block
+    memcpy(key, firmware + idx, residual);
+    if (ROUND_SIZE - residual >= 1)
+    {
+        memset(key + residual, 0x80, 1); // padding, first byte 0b10000000
+        memset(key + residual + 1, 0, ROUND_SIZE - residual - 1); // then all 0x00
+    }
+    EncryptKeySchedule(key,rkey);
+    Decrypt(state, rkey);
 }
+
+/**
+ * FOR: 64b block, 80b key
+ * write codes here: Miyaguchi¨CPreneel
+ * input:
+ * nonce 8 bytes -> key 10 bytes (padding zeros)
+ * message 8 bytes -> message 8 bytes
+ */
+void HASH_LBLOCK_MP(uint64_t nonce, const u8 firmware[], const uint16_t size, u8 state[8])
+{
+    u16 idx = 0;
+    u16 residual = size;
+    u8 nextState[8] = {0};
+    u8 key[10] = {0};
+    u8 rkey[NBROUND][4];
+
+    memcpy(key, &nonce, 8); // first 64b
+    memset(&key[8], 0, 2); // last 64b ->
+
+#undef ROUND_SIZE
+#define ROUND_SIZE 8 // key size in bytes
+    for (; idx + ROUND_SIZE < size; idx += ROUND_SIZE)
+    {
+        // prepare ctext
+        memcpy(state, firmware + idx, ROUND_SIZE);
+        memcpy(nextState, state, ROUND_SIZE);
+
+        // decipher
+        EncryptKeySchedule(key,rkey);
+        Decrypt(nextState, rkey);
+
+        // calc next state
+        *(uint64_t *) state ^= *(uint64_t *) key ^ *(uint64_t *) nextState;
+
+        // update key
+        memcpy(key, &state, 8); // first 64b
+        memset(&key[8], 0, 2); // last 64b ->
+    }
+    residual = size - idx; //how many bytes left not hashed
+    //printf("Last idx = %d; residual = %d.\n", idx, residual);
+
+    // last block
+    memcpy(state, firmware + idx, residual);
+    memset(state + residual, 0, ROUND_SIZE - residual); // fill the missing bytes with 0
+    memcpy(nextState, state, ROUND_SIZE);
+    EncryptKeySchedule(key,rkey);
+    Decrypt(nextState, rkey);
+    *(uint64_t *) state ^= *(uint64_t *) key ^ *(uint64_t *) nextState;
+}
+
+/**
+ * FOR: 64b block, 80b key
+ * write codes here: Matyas-Meyer-Osea
+ * input:
+ * nonce 8 bytes -> key 10 bytes (padding zeros)
+ * message 8 bytes -> message 8 bytes
+ */
+void HASH_LBLOCK_MMO(uint64_t nonce, const u8 firmware[], const uint16_t size, u8 state[8])
+{
+    u16 idx = 0;
+    u16 residual = size;
+    u8 nextState[8] = {0};
+    u8 key[10] = {0};
+    u8 rkey[NBROUND][4];
+
+    memcpy(key, &nonce, 8); // first 64b
+    memset(&key[8], 0, 2); // last 64b ->
+
+#undef ROUND_SIZE
+#define ROUND_SIZE 8 // key size in bytes
+    for (; idx + ROUND_SIZE < size; idx += ROUND_SIZE)
+    {
+        // prepare ctext
+        memcpy(state, firmware + idx, ROUND_SIZE);
+        memcpy(nextState, state, ROUND_SIZE);
+
+        // decipher
+        EncryptKeySchedule(key,rkey);
+        Decrypt(nextState, rkey);
+
+        // calc next state
+        *(uint64_t *) state ^= *(uint64_t *) nextState;
+
+        // update key
+        memcpy(key, &state, 8); // first 64b
+        memset(&key[8], 0, 2); // last 64b ->
+    }
+    residual = size - idx; //how many bytes left not hashed
+    //printf("Last idx = %d; residual = %d.\n", idx, residual);
+
+    // last block
+    memcpy(state, firmware + idx, residual);
+    memset(state + residual, 0, ROUND_SIZE - residual); // fill the missing bytes with 0
+    memcpy(nextState, state, ROUND_SIZE);
+    EncryptKeySchedule(key,rkey);
+    Decrypt(nextState, rkey);
+    *(uint64_t *) state ^= *(uint64_t *) nextState;
+}
+
+#undef Decrypt
+#undef Swap
 
 #endif /* LBLOCKV2_H_ */
