@@ -4,6 +4,7 @@ from joblib.logger import pformat
 import pprint
 import logging
 import time
+import re
 sys.path.append(os.path.abspath(os.path.join(__file__, '..', '..', '..')))
 
 from argparse import ArgumentParser
@@ -164,15 +165,18 @@ def tag_seen_callback(llrpMsg):
                                         accessSpec = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': 1, 'OperationCountValue': 1,},})
                                     OpSpecsIdx += 2
                             elif(accessType == 'readWispAtt') :
-                                
                                 receivedChkSum = tag["OpSpecResult"][ops]["ReadData"];
                                 logger.info("receivedChkSum : " + receivedChkSum + " hashChecksum : " + hashChecksum)
                                 if(receivedChkSum == hashChecksum) :
+                                    logger.info("Success")
                                     smokesignal.emit('rfid', {
-                                        'attestation': [{'result' : 'success'}],})
+                                        'attestation': [{'result' : 'Verified' 
+                                                        , 'EPCvalue' : tag["EPC-96"]}],})
                                 else :
+                                    logger.info("Fail")
                                     smokesignal.emit('rfid', {
-                                        'attestation': [{'result' : 'fail'}],})                                    
+                                        'attestation': [{'result' : 'Fail'}],})
+                                    fac.stopFactory()                                
                                 
                             else :
                                 # Result for Normal tags
@@ -194,7 +198,7 @@ def tag_seen_callback(llrpMsg):
                                                       , 'OpSpecId' : tag["OpSpecResult"][ops]["OpSpecID"] 
                                                       , 'status' : 'Failed'} ],})
                                 
-                        elif(2 < tag["OpSpecResult"][ops]["NumWordsWritten"]):  
+                        elif(2 < tag["OpSpecResult"][ops]["NumWordsWritten"]):
                             if (accessType == 'writeWisp') :
                                 # AsscessSpec Writing message for WISP5
                                 logger.info("hexFileLines : " + hexFileLines[hexFileIdx] + " hexFileIdx size: " + str(hexFileIdx) + " OpSpecSize : " + str(len(OpSpecs)))
@@ -415,7 +419,7 @@ def BlockChallengeAccess(pto, arg):
     OpSpecs                 = []
     
     hexContent = AttesSpecType + lengthofFramwork +  start_address + ran_num
-    print hexContent
+    print ('hex content : ', hexContent)
     OpSpecs.append(getBlockWriteMessage(1, (len(hexContent) / 4), hexContent))
     OpSpecs.append(getReadMessage(11, 4))
 
@@ -471,24 +475,25 @@ def ReadWriteAccess(proto, arg):
     
 def generateHashCheckSum(addr, size, ranN) :
     
-    f               = open("./hash/hashTest2.hex", "rb")
+    f               = open("./hash/hashTest.hex", "rb")
     wispDataLine    = f.readlines()
     data            = ''
-    sIdx            = int(addr, 16) - hashAddr # 0x0 === 0x4400
+    sIdx            = (int(addr, 16) - hashAddr) * 2 # 0x0 === 0x4400
     l               = int(size, 16) * 2
     
-    print l;
+    print sIdx, l;
+    
     for i in range(0,len(wispDataLine)):
         data += wispDataLine[i]
      
-    print repr(data)    
-    print repr(data[(sIdx*2):(sIdx*2)+l])
-    print repr(xtea_dll)
-    xtea_hash = xtea_dll.HASH_XTEA_PFMD
-    print repr(xtea_hash)
+    data = re.sub(r"\s", '', data).lower() # prevent line 
+       
+    print repr(data)
     
+    xtea_hash = xtea_dll.HASH_XTEA_PFMD
     # prepare for the parameters
-    text = data[sIdx:sIdx+l]
+    text = data[sIdx:sIdx+l].decode("hex")
+    print repr(text) 
     nonce = c_uint64(ranN) # 64-bit initial value
     plain_text = create_string_buffer(text, len(text)) # string to byte array
     text_size = c_uint16(len(text));
@@ -496,7 +501,9 @@ def generateHashCheckSum(addr, size, ranN) :
     
     # call the hash function and get final results
     xtea_hash(nonce, c_void_p(addressof(plain_text)), text_size, c_void_p(addressof(final_hash)))
-    return (hex(final_hash.value))
+    hexFinalVal = hex(final_hash.value)
+    
+    return str(hexFinalVal)[2:len(hexFinalVal)-1].zfill(16)
     
     
 def calcChecksum(stork_message):
@@ -507,8 +514,6 @@ def calcChecksum(stork_message):
     return "{:04x}".format(checksum)
 
 if __name__ == '__main__':
-    
-    print(generateHashCheckSum('1800', '80', 0x1234567891234567))
     
     init_logging()
     # Set up tornado to use reactor
