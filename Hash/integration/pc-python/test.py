@@ -25,7 +25,7 @@ test_input = [
 test_str = ''
 for i in range(len(test_input)):
     test_str += chr(test_input[i])
-#print(repr(test_str))
+print(repr(test_str))
 print("len:", len(test_input))
 
 # here's the main hash function, be sure that you've compiled the library first
