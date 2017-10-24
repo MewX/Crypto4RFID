@@ -173,15 +173,20 @@ def trasferReadAttWISP(seen_tag, ops) :
     receivedChkSum = seen_tag["OpSpecResult"][ops]["ReadData"];
     logger.info("receivedChkSum : " + receivedChkSum + " hashChecksum : " + hashChecksum)
     
+    sendChecksum = 'Checksum(WISP5) : ' + receivedChkSum + " / " + 'Checksum(Client Software) : ' + hashChecksum
+    
     if(receivedChkSum == hashChecksum) :
         logger.info("Success")
         smokesignal.emit('rfid', {
-            'attestation': [{'result' : 'Verified' 
-                            , 'EPCvalue' : seen_tag["EPC-96"]}],})
+            'attestation': [{'result' : 'Verified - ' + sendChecksum
+                            , 'EPCvalue' : seen_tag["EPC-96"]
+                            }],})
     else :
         logger.info("Fail")
         smokesignal.emit('rfid', {
-            'attestation': [{'result' : 'Failed'}],})     
+            'attestation': [{'result' : 'Failed - ' + sendChecksum
+                             , 'EPCvalue' : seen_tag["EPC-96"]
+                             }],})     
         
         
 def trasferReadWISP(seen_tag, ops) :

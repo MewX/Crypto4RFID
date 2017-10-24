@@ -117,9 +117,10 @@ $(document).ready(function() {
 	    		processData:false,
 	    		cache:false,
 	    		success:function(data){
-	    			var submitButton = '<span id="status" class="label label-default">'
+	    			var submitButton = '<button class="btn btn-warning" type="submit">Start to Write</button>'
+	    								+ '<span id="status" class="label label-default">'
 	    								+ data 
-	    								+'</span><button class="btn btn-warning" type="submit">Start to Write</button>';
+	    								+ '</span>'	    								;
 	    			$("#upload-status").html(submitButton);
 	    		},
 	    		error:function(data){
