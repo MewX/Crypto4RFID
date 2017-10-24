@@ -4,8 +4,9 @@
 				'TagSeenCount', 'AccessSpecID' ];
 		
 		var readTagAttributes = [ 'EPCvalue', 'read', 'memroybank'];
-		var readWisTagAttributes = ['readWisp'];
+		var readWisTagAttributes = ['readWisp', 'RetryCnt', 'TotalCnt', 'Time'];
 		var writeWisTagAttributes = ['writeWisp', 'status'];
+		var attestationAttributes = ['result'];
 		
 //		var buttonInfo = new Object();
 //		buttonInfo.resume = "";
@@ -35,6 +36,7 @@
 				, readTags = data.readTags
 				, readWispTags = data.readWispTags
 				, writeWispTags = data.writeWispTags
+				, attestation = data.attestation
 				, tbody = document.getElementById('tagData')
 				, tbody2 = document.getElementById('readData')
 				, tbody3 = document.getElementById('readWispData')
@@ -44,10 +46,12 @@
 				, readRowData = ''
 				, readWispRowData = ''
 				, writeWispRowData = ''
+				, attestationRowData = ''
 				, i, tag, ai, row
 				, j, readTag, aj, Readrow
 				, k, readWipsTag, ak, ReadWispRow
-				, x, writeWipsTag, ax, WriteWispRow;
+				, x, writeWipsTag, ax, WriteWispRow
+				, y, attestationTag, ay, AttestationRow;
 			
 			for (i in tags) {
 				tag = tags[i];
@@ -85,7 +89,6 @@
 				Readrow.innerHTML = readRowData;
 			}
 			
-			
 			// read Wisp table
 			for (k in readWispTags){
 				readWipsTag = readWispTags[k];
@@ -94,11 +97,7 @@
 				if (!ReadWispRow) {
 					ReadWispRow = document.createElement("tr")
 					ReadWispRow.id = "readWisp-" + readWipsTag['EPCvalue'] + "-" + readWipsTag['OpSpecId']
-					if(readWipsTag['AccessType'] == 'readWispAtt'){
-						tbody5.appendChild(ReadWispRow)
-					}else{
-						tbody3.appendChild(ReadWispRow)
-					}
+					tbody3.appendChild(ReadWispRow)
 				}
 				
 				readWispRowData = '';
@@ -125,6 +124,24 @@
 				}
 				WriteWispRow.innerHTML = writeWispRowData;
 			}
+			
+			// Attestation Result data table
+			for (y in attestation){
+				attestationTag = attestation[y];
+				AttestationRow = document.getElementById("attestation-" + attestationTag['EPCvalue'])
+				
+				if (!AttestationRow) {
+					AttestationRow = document.createElement("tr")
+					AttestationRow.id = "attestation-" + attestationTag['EPCvalue']
+					tbody5.appendChild(AttestationRow)
+				}
+				
+				attestationRowData = '';
+				for (ay in attestationAttributes) {
+					attestationRowData += createCell(attestationTag, attestationAttributes[ay])
+				}
+				AttestationRow.innerHTML = attestationRowData;
+			}			
 			
 		}
 

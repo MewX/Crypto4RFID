@@ -72,9 +72,17 @@ $(document).ready(function() {
     	var startAddr = $("#user-StartAddr").val();
     	var endAddr = $("#user-EndAddr").val();
     	
-    	window.ws.send(JSON.stringify({"type":"readWisp"
-											, "startAddr": startAddr    										
-											, "endAddr": endAddr}));
+    	if (("0x"+endAddr) > ("0x"+startAddr)){
+        	var bytes = ("0x"+endAddr) - ("0x"+startAddr);
+        	$("#showing-byte").html('<span id="status" class="label label-default">' + bytes + ' bytes</span>');
+        	
+        	window.ws.send(JSON.stringify({"type":"readWisp"
+    											, "startAddr": startAddr    										
+    											, "endAddr": endAddr}));
+    	}else{
+    		alert("End Address must be bigger than Start Address!")
+    	}
+
     	return false;
     	
     });

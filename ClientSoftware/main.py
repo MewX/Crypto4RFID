@@ -4,6 +4,9 @@ from joblib.logger import pformat
 import pprint
 import logging
 import time
+import re
+import csv
+from _csv import writer
 sys.path.append(os.path.abspath(os.path.join(__file__, '..', '..', '..')))
 
 from argparse import ArgumentParser
@@ -19,6 +22,12 @@ from ctypes import *
 
 from sllurp.WModules import i2h
 
+#path directory
+pathDir = os.path.dirname(__file__)
+
+# Benchmark Parameter
+totalCnt            = 0
+retryCnt            = 0
 
 # Hash function 
 xtea_dll = cdll.LoadLibrary("./hash/xtea.so")
@@ -56,7 +65,6 @@ hexFileIdx          = 0
 
 checkCnt            = 5
 
-T                   = [1,2,3,4,6,8,16]  # Set of allowed values for S_p after throttle.
 
 def startTimeMeasurement():
     global startTime
@@ -65,7 +73,7 @@ def startTimeMeasurement():
 def getTimeMeasurement():
     global endTime
     endTime = time.time()
-    return (endTime - startTime)
+    return "{:.03f}".format(endTime - startTime)
 
 def init_logging():
     
@@ -88,7 +96,7 @@ class BaseHandler(RequestHandler):
 
 class UploadFileHandler(RequestHandler):
     def post(self):
-        hexfile_dir         = os.path.dirname(__file__) + '/static/files/' + self.request.files["hexFile"][0].filename
+        hexfile_dir         = pathDir + '/static/files/' + self.request.files["hexFile"][0].filename
         hexfile             = open(hexfile_dir,"w")
         hexfile.write(self.request.files["hexFile"][0].body)
         hexfile.close;
@@ -129,10 +137,82 @@ class WebSocketHandler(WebSocketHandler):
             except WebSocketClosedError:
                 logger.debug('attempting to send websocket message with no connected clients')
 
+
+def trasferWriteWISP(seen_tag, ops):
+    global accessId, hexFileIdx
+    # AsscessSpec Writing message for WISP5
+    logger.info("hexFileLines : " + hexFileLines[hexFileIdx] + " hexFileIdx size: " + str(hexFileIdx) + " OpSpecSize : " + str(len(OpSpecs)))
+    logger.info(OpSpecs)
+    
+    smokesignal.emit('rfid', {
+        'writeWispTags': [{'writeWisp' : hexFileLines[hexFileIdx]
+                          , 'EPCvalue' : seen_tag["EPC-96"]
+                          , 'OpSpecId' : seen_tag["OpSpecResult"][ops]["OpSpecID"] 
+                          , 'status' : 'Success'} ],})    
+    
+    if (seen_tag["EPC-96"][22:] == 'ff') :
+        fac.nextAccessSpec(opSpecs = [OpSpecs[hexFileIdx]], 
+            accessSpec = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': StopTrigger, 'OperationCountValue': OCV,},})  
+    else :
+        if (hexFileIdx == (len(OpSpecs) - 1)):
+            logger.info(" EOF reached.")
+        else:
+            logger.info("WriteWisp : " + str(hexFileIdx))
+            accessId += 1
+            hexFileIdx += 1                                    
+            fac.nextAccessSpec(opSpecs = [OpSpecs[hexFileIdx]], 
+                accessSpec = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': StopTrigger, 'OperationCountValue': OCV,},})  
+
+def trasferRead(seen_tag, ops):
+    # Result for Normal tags
+    smokesignal.emit('rfid', {
+        'readTags': [{'read' : seen_tag["OpSpecResult"][ops]["ReadData"]
+                    , 'EPCvalue' : seen_tag["EPC-96"] }],})   
+
+def trasferReadAttWISP(seen_tag, ops) :
+    receivedChkSum = seen_tag["OpSpecResult"][ops]["ReadData"];
+    logger.info("receivedChkSum : " + receivedChkSum + " hashChecksum : " + hashChecksum)
+    
+    if(receivedChkSum == hashChecksum) :
+        logger.info("Success")
+        smokesignal.emit('rfid', {
+            'attestation': [{'result' : 'Verified' 
+                            , 'EPCvalue' : seen_tag["EPC-96"]}],})
+    else :
+        logger.info("Fail")
+        smokesignal.emit('rfid', {
+            'attestation': [{'result' : 'Failed'}],})     
+        
+        
+def trasferReadWISP(seen_tag, ops) :
+    global tagReport, accessId, OpSpecsIdx
+    
+    # AsscessSpec Reading message for WISP5
+    logger.info("OpSpecsIdx : " + str(OpSpecsIdx) + " OpSpecs.__len__(): " + str(OpSpecs.__len__()) )
+    smokesignal.emit('rfid', {
+        'readWispTags': [{'readWisp' : seen_tag["OpSpecResult"][ops]["ReadData"]
+                          , 'EPCvalue' : seen_tag["EPC-96"]
+                          , 'OpSpecId' : seen_tag["OpSpecResult"][ops]["OpSpecID"] 
+                          , 'AccessType' : accessType 
+                          , 'RetryCnt' : retryCnt 
+                          , 'TotalCnt' : totalCnt
+                          , 'Time' : getTimeMeasurement()
+                          }],})  
+    
+    if(OpSpecsIdx < OpSpecs.__len__()) :
+        logger.info("ReadWisp : ")
+        accessId += 1
+        fac.nextAccessSpec(opSpecs = [OpSpecs[OpSpecsIdx], OpSpecs[OpSpecsIdx+1]], 
+            accessSpec = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': StopTrigger, 'OperationCountValue': OCV,},})
+        OpSpecsIdx += 2
+        
+    tagReport += 1
+
+
 def tag_seen_callback(llrpMsg):
     
         """Function to run each time the reader reports seeing tags."""
-        global tagReport, accessId, OpSpecsIdx, hexFileIdx
+        global tagReport, accessId, OpSpecsIdx, hexFileIdx, retryCnt, totalCnt
         tags = llrpMsg.msgdict['RO_ACCESS_REPORT']['TagReportData']
         
         if tags:
@@ -145,47 +225,31 @@ def tag_seen_callback(llrpMsg):
                 if("OpSpecResult" in tags[0]):
                     for ops in tag["OpSpecResult"]:
                         logger.info('saw tag(s): {}'.format(pprint.pformat(tags)))
-                        if ("ReadData" in tag["OpSpecResult"][ops]):
+                        # Get Readdata from Tag
+                        if ("ReadData" in tag["OpSpecResult"][ops] and tag["OpSpecResult"][ops]["Result"] == 0):
                             logger.info("Readdata = " + tag["OpSpecResult"][ops]["ReadData"] + " accessType :" + accessType)
-                            
+                            totalCnt += 1
                             if (accessType == 'readWisp') :
-                                # AsscessSpec Reading message for WISP5
-                                logger.info("OpSpecsIdx : " + str(OpSpecsIdx) + " OpSpecs.__len__(): " + str(OpSpecs.__len__()) )
-                                smokesignal.emit('rfid', {
-                                    'readWispTags': [{'readWisp' : tag["OpSpecResult"][ops]["ReadData"]
-                                                      , 'EPCvalue' : tag["EPC-96"]
-                                                      , 'OpSpecId' : tag["OpSpecResult"][ops]["OpSpecID"] 
-                                                      , 'AccessType' : accessType }],})  
+                                trasferReadWISP(tag, ops)
                                 
-                                if(OpSpecsIdx < OpSpecs.__len__()) :
-                                    logger.info("ReadWisp : ")
-                                    accessId += 1
-                                    fac.nextAccessSpec(opSpecs = [OpSpecs[OpSpecsIdx], OpSpecs[OpSpecsIdx+1]], 
-                                        accessSpec = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': 1, 'OperationCountValue': 1,},})
-                                    OpSpecsIdx += 2
-                            elif(accessType == 'readWispAtt') :
-                                
-                                receivedChkSum = tag["OpSpecResult"][ops]["ReadData"];
-                                logger.info("receivedChkSum : " + receivedChkSum + " hashChecksum : " + hashChecksum)
-                                if(receivedChkSum == hashChecksum) :
-                                    smokesignal.emit('rfid', {
-                                        'attestation': [{'result' : 'success'}],})
-                                else :
-                                    smokesignal.emit('rfid', {
-                                        'attestation': [{'result' : 'fail'}],})                                    
-                                
+                            elif (accessType == 'readWispAtt') :
+                                trasferReadAttWISP(tag, ops)
+                            
                             else :
-                                # Result for Normal tags
-                                smokesignal.emit('rfid', {
-                                    'readTags': [{'read' : tag["OpSpecResult"][ops]["ReadData"]
-                                                , 'EPCvalue' : tag["EPC-96"] }],})
+                                trasferRead(tag, ops)
+                            
+                            retryCnt = 0
                                 
-                                
-                        elif(0 == tag["OpSpecResult"][ops]["NumWordsWritten"]):
-                            if (accessType == 'readWisp' or accessType == 'readWispAtt') :
+                        elif(0 < tag["OpSpecResult"][ops]["Result"]):
+                            totalCnt += 1
+                            retryCnt += 1
+                            if (accessType == 'readWisp') :
+                                print ('retry count : ', retryCnt)
+                                print ('OpSpecs[OpSpecsIdx] : ', OpSpecs[OpSpecsIdx])
+                                print ('OpSpecs[OpSpecsIdx+1] : ', OpSpecs[OpSpecsIdx+1])
                                 OpSpecsIdx -= 2
                                 fac.nextAccessSpec(opSpecs = [OpSpecs[OpSpecsIdx], OpSpecs[OpSpecsIdx+1]], 
-                                    accessSpec = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': 1, 'OperationCountValue': 1,},})
+                                    accessSpec = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': StopTrigger, 'OperationCountValue': OCV,},})
                                 OpSpecsIdx += 2
                             elif(accessType == 'writeWisp'):
                                 smokesignal.emit('rfid', {
@@ -194,29 +258,9 @@ def tag_seen_callback(llrpMsg):
                                                       , 'OpSpecId' : tag["OpSpecResult"][ops]["OpSpecID"] 
                                                       , 'status' : 'Failed'} ],})
                                 
-                        elif(2 < tag["OpSpecResult"][ops]["NumWordsWritten"]):  
+                        elif(2 < tag["OpSpecResult"][ops]["NumWordsWritten"]):
                             if (accessType == 'writeWisp') :
-                                # AsscessSpec Writing message for WISP5
-                                logger.info("hexFileLines : " + hexFileLines[hexFileIdx] + " hexFileIdx size: " + str(hexFileIdx) + " OpSpecSize : " + str(len(OpSpecs)))
-                                
-                                smokesignal.emit('rfid', {
-                                    'writeWispTags': [{'writeWisp' : hexFileLines[hexFileIdx]
-                                                      , 'EPCvalue' : tag["EPC-96"]
-                                                      , 'OpSpecId' : tag["OpSpecResult"][ops]["OpSpecID"] 
-                                                      , 'status' : 'Success'} ],})    
-
-                                if (tag["EPC-96"][22:] == 'ff') :
-                                    fac.nextAccessSpec(opSpecs = [OpSpecs[hexFileIdx]], 
-                                        accessSpec = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': 1, 'OperationCountValue': 1,},})  
-                                else :
-                                    if (hexFileIdx == (len(OpSpecs) - 1)):
-                                        logger.info(" EOF reached.")
-                                    else:
-                                        logger.info("WriteWisp : " + str(hexFileIdx))
-                                        accessId += 1
-                                        hexFileIdx += 1                                    
-                                        fac.nextAccessSpec(opSpecs = [OpSpecs[hexFileIdx]], 
-                                            accessSpec = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': 1, 'OperationCountValue': 1,},})  
+                                trasferWriteWISP(tag, ops)
                                 
                         print getTimeMeasurement()
                 else:
@@ -254,6 +298,9 @@ def polite_shutdown(factory):
     return factory.politeShutdown()
 
 def access_memory(arg):
+    global retryCnt, totalCnt
+    retryCnt = 0
+    totalCnt = 0
     
     if(arg['type'] == 'readWisp'):
         for pto in fac.protocols: 
@@ -297,7 +344,7 @@ def BlockWriteAccess(pto, arg):
     global hexfile, OpSpecs, proto, hexFileIdx, accessId, hexFileLines
     
     proto           = pto
-    dir             = os.path.dirname(__file__) + '/static/files/'
+    dir             = pathDir + '/static/files/'
     hexfile         = open(dir + arg['file'], 'r')
     hexFileLines    = hexfile.readlines()
     
@@ -318,6 +365,7 @@ def BlockWriteAccess(pto, arg):
                 OpSpecs.append(getBlockWriteMessage(i, (len(writeData) / 4), writeData))
     
     print('Bytes to send: ' + str(total_words_to_send*2))
+    
     return proto.startAccess(readWords=None,
         writeWords=[OpSpecs[hexFileIdx]], accessStopParam = {'AccessSpecStopTriggerType': 1, 'OperationCountValue': 5,})
 
@@ -415,7 +463,7 @@ def BlockChallengeAccess(pto, arg):
     OpSpecs                 = []
     
     hexContent = AttesSpecType + lengthofFramwork +  start_address + ran_num
-    print hexContent
+    print ('hex content : ', hexContent)
     OpSpecs.append(getBlockWriteMessage(1, (len(hexContent) / 4), hexContent))
     OpSpecs.append(getReadMessage(11, 4))
 
@@ -446,7 +494,7 @@ def ReadWriteAccess(proto, arg):
                 }
         print ("read Param : ", readSpecParam)
         return proto.startAccessSpec(None ,opSpecs = readSpecParam, # OR you could do: [readSpecParam,readSpecParam2,readSpecParam3],
-            accessSpecParams = {'ID':1, 'StopParam': {'AccessSpecStopTriggerType': 1, 'OperationCountValue': 1,},})        
+            accessSpecParams = {'ID':1, 'StopParam': {'AccessSpecStopTriggerType': StopTrigger, 'OperationCountValue': OCV,},})        
             
     elif(arg['type'] == 'write') :
         writeSpecParam = {
@@ -471,24 +519,25 @@ def ReadWriteAccess(proto, arg):
     
 def generateHashCheckSum(addr, size, ranN) :
     
-    f               = open("./hash/hashTest2.hex", "rb")
+    f               = open("./hash/hashTest.hex", "rb")
     wispDataLine    = f.readlines()
     data            = ''
-    sIdx            = int(addr, 16) - hashAddr # 0x0 === 0x4400
+    sIdx            = (int(addr, 16) - hashAddr) * 2 # 0x0 === 0x4400
     l               = int(size, 16) * 2
     
-    print l;
+    print sIdx, l;
+    
     for i in range(0,len(wispDataLine)):
         data += wispDataLine[i]
      
-    print repr(data)    
-    print repr(data[(sIdx*2):(sIdx*2)+l])
-    print repr(xtea_dll)
-    xtea_hash = xtea_dll.HASH_XTEA_PFMD
-    print repr(xtea_hash)
+    data = re.sub(r"\s", '', data).lower() # prevent line 
+       
+    print repr(data)
     
+    xtea_hash = xtea_dll.HASH_XTEA_PFMD
     # prepare for the parameters
-    text = data[sIdx:sIdx+l]
+    text = data[sIdx:sIdx+l].decode("hex")
+    print repr(text) 
     nonce = c_uint64(ranN) # 64-bit initial value
     plain_text = create_string_buffer(text, len(text)) # string to byte array
     text_size = c_uint16(len(text));
@@ -496,7 +545,9 @@ def generateHashCheckSum(addr, size, ranN) :
     
     # call the hash function and get final results
     xtea_hash(nonce, c_void_p(addressof(plain_text)), text_size, c_void_p(addressof(final_hash)))
-    return (hex(final_hash.value))
+    hexFinalVal = hex(final_hash.value)
+    
+    return str(hexFinalVal)[2:len(hexFinalVal)-1].zfill(16)
     
     
 def calcChecksum(stork_message):
@@ -506,9 +557,19 @@ def calcChecksum(stork_message):
     checksum = checksum % 256
     return "{:04x}".format(checksum)
 
-if __name__ == '__main__':
+def recodeCSVdata():
     
-    print(generateHashCheckSum('1800', '80', 0x1234567891234567))
+    with open('./csv/benchmark.csv', 'wb') as csvfile :
+        fieldnames = ['AsscessType', 'WordSize', 'Time']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        
+        writer.writeheader()
+        writer.writerow({'AsscessType':'read', 'WordSize':'0x80', 'Time':'10.21'})
+        writer.writerow({'AsscessType':'write', 'WordSize':'0xFF', 'Time':'10.21'})
+        writer.writerow({'AsscessType':'test', 'WordSize':'0x80', 'Time':'10.21'})
+
+
+if __name__ == '__main__':
     
     init_logging()
     # Set up tornado to use reactor
@@ -516,8 +577,8 @@ if __name__ == '__main__':
     
     # Set up web server
     settings = {"debug" : True,''
-                "static_path" : os.path.join(os.path.dirname(__file__), "static"),
-                "template_path" : os.path.join(os.path.dirname(__file__), "template")
+                "static_path" : os.path.join(pathDir, "static"),
+                "template_path" : os.path.join(pathDir, "template")
                 }
 
     application = Application([(r"/", BaseHandler)
