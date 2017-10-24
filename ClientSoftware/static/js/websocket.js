@@ -4,7 +4,7 @@
 				'TagSeenCount', 'AccessSpecID' ];
 		
 		var readTagAttributes = [ 'EPCvalue', 'read', 'memroybank'];
-		var readWisTagAttributes = ['readWisp'];
+		var readWisTagAttributes = ['readWisp', 'RetryCnt', 'TotalCnt', 'Time'];
 		var writeWisTagAttributes = ['writeWisp', 'status'];
 		var attestationAttributes = ['result'];
 		

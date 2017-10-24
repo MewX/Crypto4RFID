@@ -24,17 +24,20 @@
 		<div class="col-lg-5">
 			<div class="EPC-readWisp input-group">
 				<span class="input-group-addon" id="basic-addon1">Start Address</span>
-				<input id="user-StartAddr" class="form-control" type="text" required/>
+				<input id="user-StartAddr" class="form-control" type="text" maxlength="4" pattern="^[_A-z0-9]{4}$" required/>
 			</div>
 		</div>
-		<div class="col-lg-7">
+		<div class="col-lg-6">
 			<div class="EPC-readWisp input-group">
 				<span class="input-group-addon" id="basic-addon1">End Address</span>
-				<input id="user-EndAddr" class="form-control" type="text" required/>
+				<input id="user-EndAddr" class="form-control" type="text" maxlength="4" pattern="^[_A-z0-9]{4}$" required/>
 				<div class="input-group-btn">
-					<button type="submit" class="btn btn-primary">Read Data</button>
+					<button type="submit" class="btn btn-primary">Read</button>
 				</div>	
 			</div>
+		</div>
+		<div class="col-lg-1">
+			<div id="showing-byte"></div>
 		</div>
 	</div>
 </form>
@@ -44,6 +47,9 @@
 				<thead>
 					<tr>
 						<td>ReadData</td>
+						<td>RetryCnt</td>
+						<td>TotalCnt</td>
+						<td>Time</td>
 					</tr>
 				</thead>
 				<tbody id="readWispData"></tbody>
