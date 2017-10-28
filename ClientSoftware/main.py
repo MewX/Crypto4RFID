@@ -6,6 +6,7 @@ import logging
 import time
 import re
 import csv
+import numpy as np
 from _csv import writer
 sys.path.append(os.path.abspath(os.path.join(__file__, '..', '..', '..')))
 
@@ -33,6 +34,8 @@ retryCnt            = 0
 xtea_dll = cdll.LoadLibrary("./hash/xtea.so")
 hashChecksum        = 0
 hashAddr            = 0x1800
+hashAddrEnd         = 0x1a00
+WISPdataSize        = 0x200
 
 # WISP Control global variables.
 fac                 = None
@@ -63,7 +66,7 @@ hexFileLines        = None
 current_line        = None
 hexFileIdx          = 0
 
-checkCnt            = 5
+MaxRetryCnt         = 30
 
 
 def startTimeMeasurement():
@@ -148,20 +151,34 @@ def trasferWriteWISP(seen_tag, ops):
         'writeWispTags': [{'writeWisp' : hexFileLines[hexFileIdx]
                           , 'EPCvalue' : seen_tag["EPC-96"]
                           , 'OpSpecId' : seen_tag["OpSpecResult"][ops]["OpSpecID"] 
-                          , 'status' : 'Success'} ],})    
+                          , 'status' : 'Success'
+                          , 'AccessType' : accessType 
+                          , 'RetryCnt' : retryCnt
+                          , 'TotalCnt' : totalCnt
+                          , 'Time' : getTimeMeasurement()
+                        }],})    
     
-    if (seen_tag["EPC-96"][22:] == 'ff') :
+    if (hexFileIdx == (len(OpSpecs) - 1)):
+        logger.info(" EOF reached.")
+    else:
+        logger.info("WriteWisp : " + str(hexFileIdx))
+        accessId += 1
+        hexFileIdx += 1                                    
         fac.nextAccessSpec(opSpecs = [OpSpecs[hexFileIdx]], 
             accessSpec = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': StopTrigger, 'OperationCountValue': OCV,},})  
-    else :
-        if (hexFileIdx == (len(OpSpecs) - 1)):
-            logger.info(" EOF reached.")
-        else:
-            logger.info("WriteWisp : " + str(hexFileIdx))
-            accessId += 1
-            hexFileIdx += 1                                    
-            fac.nextAccessSpec(opSpecs = [OpSpecs[hexFileIdx]], 
-                accessSpec = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': StopTrigger, 'OperationCountValue': OCV,},})  
+    
+#     if (seen_tag["EPC-96"][22:] == 'ff') :
+#         fac.nextAccessSpec(opSpecs = [OpSpecs[hexFileIdx]], 
+#             accessSpec = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': StopTrigger, 'OperationCountValue': OCV,},})  
+#     else :
+#         if (hexFileIdx == (len(OpSpecs) - 1)):
+#             logger.info(" EOF reached.")
+#         else:
+#             logger.info("WriteWisp : " + str(hexFileIdx))
+#             accessId += 1
+#             hexFileIdx += 1                                    
+#             fac.nextAccessSpec(opSpecs = [OpSpecs[hexFileIdx]], 
+#                 accessSpec = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': StopTrigger, 'OperationCountValue': OCV,},})  
 
 def trasferRead(seen_tag, ops):
     # Result for Normal tags
@@ -249,30 +266,32 @@ def tag_seen_callback(llrpMsg):
                             totalCnt += 1
                             retryCnt += 1
                             if (accessType == 'readWisp') :
+                                    
                                 print ('retry count : ', retryCnt)
-                                print ('OpSpecs[OpSpecsIdx] : ', OpSpecs[OpSpecsIdx])
-                                print ('OpSpecs[OpSpecsIdx+1] : ', OpSpecs[OpSpecsIdx+1])
+                                print ('len(OpSpecs) : ', len(OpSpecs))
+                                print ('OpSpecsIdx : ', OpSpecsIdx)
                                 OpSpecsIdx -= 2
                                 fac.nextAccessSpec(opSpecs = [OpSpecs[OpSpecsIdx], OpSpecs[OpSpecsIdx+1]], 
                                     accessSpec = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': StopTrigger, 'OperationCountValue': OCV,},})
                                 OpSpecsIdx += 2
                             elif(accessType == 'writeWisp'):
-                                smokesignal.emit('rfid', {
-                                    'writeWispTags': [{'writeWisp' : hexFileLines[hexFileIdx]
-                                                      , 'EPCvalue' : tag["EPC-96"]
-                                                      , 'OpSpecId' : tag["OpSpecResult"][ops]["OpSpecID"] 
-                                                      , 'status' : 'Failed'} ],})
                                 
-                        elif(2 < tag["OpSpecResult"][ops]["NumWordsWritten"]):
+                                print ('retry count : ', retryCnt)
+                                fac.nextAccessSpec(opSpecs = [OpSpecs[hexFileIdx]], 
+                                    accessSpec = {'ID':accessId, 'StopParam': {'AccessSpecStopTriggerType': StopTrigger, 'OperationCountValue': OCV,},})  
+                                
+                        elif(2 < tag["OpSpecResult"][ops]["NumWordsWritten"] and tag["OpSpecResult"][ops]["Result"] == 0):
                             if (accessType == 'writeWisp') :
+                                totalCnt += 1
                                 trasferWriteWISP(tag, ops)
-                                
-                        print getTimeMeasurement()
+                                retryCnt = 0
                 else:
                     logger.info('no tags seen')
                 return
             for tag in tags:
-                tagReport += tag['TagSeenCount'][0]       
+                tagReport += tag['TagSeenCount'][0]   
+            
+            print tagReport    
         
 def parse_args():
     parser = ArgumentParser(description='Simple RFID Reader Inventory')
@@ -296,6 +315,8 @@ def reader_control(arg):
         fac.resumeInventory()
     elif accessType == 'pause':
         fac.pauseInventory()
+    elif accessType == 'shutdown':
+        fac.politeShutdown()
     else :
         access_memory(arg)
 
@@ -371,6 +392,8 @@ def BlockWriteAccess(pto, arg):
     
     print('Bytes to send: ' + str(total_words_to_send*2))
     
+    startTimeMeasurement()
+    
     return proto.startAccess(readWords=None,
         writeWords=[OpSpecs[hexFileIdx]], accessStopParam = {'AccessSpecStopTriggerType': 1, 'OperationCountValue': 5,})
 
@@ -392,6 +415,9 @@ def BlockReadAccess(pto, arg):
         OpSpecs.append(getBlockWriteMessage(cnt, 2, hexContent))
         OpSpecs.append(getReadMessage((cnt * 10) + 1))
         cnt += 1
+        
+    
+    print len(OpSpecs)
         
 #     target = {
 #         "MB" : 1, # EPC = 1, userMem = 3
@@ -460,14 +486,22 @@ def BlockChallengeAccess(pto, arg):
 #     wordCnt         = str(int('{:02X}'.format(bytes_per_read)) - 4)
 
     start_address           = arg['startAddr']
-    lengthofFramwork        = arg['LOF']
-    ran_num                 = arg['user-RanNum-Att']
-    hashChecksum            = generateHashCheckSum(start_address, lengthofFramwork, int(ran_num, 16))
+    lengthofFramwork        = int(arg['LOF'])
+    numbers                 = '1234567891234567'
+    ran_num                 = int(numbers, 16)
+    
+    hexFinalVal = hex(loopForHashChecksum(start_address, lengthofFramwork, ran_num))
+    hashChecksum = str(hexFinalVal)[2:len(hexFinalVal)-1].zfill(16)
+    
+#     str(hexFinalVal)[2:len(hexFinalVal)-1].zfill(16)
+    
     print hashChecksum
 #     wordCnt                 = str(int('{:02X}'.format(lengthofFramwork / bytes_per_read)) - 4)
     OpSpecs                 = []
     
-    hexContent = AttesSpecType + lengthofFramwork +  start_address + ran_num
+#     hexContent = AttesSpecType + (hex(lengthofFramwork)[2:]).zfill(2) +  start_address + arg['user-RanNum-Att']
+    hexContent = AttesSpecType + arg['LOF'].zfill(2) +  start_address + numbers
+
     print ('hex content : ', hexContent)
     OpSpecs.append(getBlockWriteMessage(1, (len(hexContent) / 4), hexContent))
     OpSpecs.append(getReadMessage(11, 4))
@@ -524,10 +558,10 @@ def ReadWriteAccess(proto, arg):
     
 def generateHashCheckSum(addr, size, ranN) :
     
-    f               = open("./hash/hashTest.hex", "rb")
+    f               = open("./hash/WISP-FRAM.hex", "rb")
     wispDataLine    = f.readlines()
     data            = ''
-    sIdx            = (int(addr, 16) - hashAddr) * 2 # 0x0 === 0x4400
+    sIdx            = (addr - hashAddr) * 2 # 0x0 === 0x4400
     l               = int(size, 16) * 2
     
     print sIdx, l;
@@ -542,7 +576,7 @@ def generateHashCheckSum(addr, size, ranN) :
     xtea_hash = xtea_dll.HASH_XTEA_PFMD
     # prepare for the parameters
     text = data[sIdx:sIdx+l].decode("hex")
-    print repr(text) 
+    print repr(data[sIdx:sIdx+l]) 
     nonce = c_uint64(ranN) # 64-bit initial value
     plain_text = create_string_buffer(text, len(text)) # string to byte array
     text_size = c_uint16(len(text));
@@ -550,9 +584,10 @@ def generateHashCheckSum(addr, size, ranN) :
     
     # call the hash function and get final results
     xtea_hash(nonce, c_void_p(addressof(plain_text)), text_size, c_void_p(addressof(final_hash)))
-    hexFinalVal = hex(final_hash.value)
+#     hexFinalVal = hex(final_hash.value)
     
-    return str(hexFinalVal)[2:len(hexFinalVal)-1].zfill(16)
+    return final_hash.value
+#     return str(hexFinalVal)[2:len(hexFinalVal)-1].zfill(16)
     
     
 def calcChecksum(stork_message):
@@ -562,19 +597,40 @@ def calcChecksum(stork_message):
     checksum = checksum % 256
     return "{:04x}".format(checksum)
 
-def recodeCSVdata():
-    
-    with open('./csv/benchmark.csv', 'wb') as csvfile :
-        fieldnames = ['AsscessType', 'WordSize', 'Time']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+def generateNewAddress(rand, address):
+    rand += ((rand * rand) | 5) % pow(2, 4)
+#     print("randomNumber : ", repr(hex(rand)))
+    address = ((address ^ rand) & 0xFF) + 0xFF80
+
+    address %= WISPdataSize
+    address += hashAddr
+    print repr(address)
+    return address
+
+def loopForHashChecksum(startAddr, LoF, randNum):
+    generatedAddr = int(startAddr, 16)
+#     generatedAddr = startAddr
+    for i_len in range(0, LoF, 1):
+        generatedAddr = generateNewAddress(randNum, generatedAddr)
+        if (generatedAddr < hashAddr or generatedAddr > hashAddrEnd):
+            i_len -= 1
+            continue;
         
-        writer.writeheader()
-        writer.writerow({'AsscessType':'read', 'WordSize':'0x80', 'Time':'10.21'})
-        writer.writerow({'AsscessType':'write', 'WordSize':'0xFF', 'Time':'10.21'})
-        writer.writerow({'AsscessType':'test', 'WordSize':'0x80', 'Time':'10.21'})
+        print repr(generatedAddr)
+        randNum = generateHashCheckSum(generatedAddr, '8', randNum)
+        print ('generatedAddr : ' + repr(hex(generatedAddr)))
+        print ('generatedAddr : ' + repr(hex(randNum)))
+        
+    return randNum
 
 
 if __name__ == '__main__':
+    
+#     print hex(generateNewAddress(0x1234567891234567, int('ffdd', 16)))
+#     print (generateHashCheckSum(generateNewAddress(0x1234567891234567, int('abcd', 16)), '8', 0x1234567891234567))
+    
+#     print loopForHashChecksum('1802', 1, 0x1234567891234567)
     
     init_logging()
     # Set up tornado to use reactor

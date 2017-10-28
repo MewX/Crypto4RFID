@@ -5,7 +5,7 @@
 		
 		var readTagAttributes = [ 'EPCvalue', 'read', 'memroybank'];
 		var readWisTagAttributes = ['readWisp', 'RetryCnt', 'TotalCnt', 'Time'];
-		var writeWisTagAttributes = ['writeWisp', 'status'];
+		var writeWisTagAttributes = ['writeWisp', 'status', 'RetryCnt', 'TotalCnt', 'Time'];
 		var attestationAttributes = ['result'];
 		
 //		var buttonInfo = new Object();
