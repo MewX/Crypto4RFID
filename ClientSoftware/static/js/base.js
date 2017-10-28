@@ -27,6 +27,11 @@ $(document).ready(function() {
         return false;
     });
     
+    $("#shutdownForm").on("submit", function() {
+    	window.ws.send(JSON.stringify({"type":"shutdown"}));
+        return false;
+    });
+    
     $("#readForm").on("submit", function() {
     	var MB = $('input[name=optradio]:checked' ).val();
     	var WordSta = $('#WordStart').val();
@@ -58,9 +63,10 @@ $(document).ready(function() {
     });
 
     $("#writeForm-wisp").on("submit", function() {
-    	var fileName = $("#status").text().split(": ");
-    	window.ws.send(JSON.stringify({"type":"writeWisp"
-    										, "file": fileName[1]}));
+    	var fileName = $("#status-write").text().split(": ");
+		window.ws.send(JSON.stringify({"type":"writeWisp"
+			, "file": fileName[1]}));
+    	
     	return false;
     });    
     
@@ -74,7 +80,12 @@ $(document).ready(function() {
     	
     	if (("0x"+endAddr) > ("0x"+startAddr)){
         	var bytes = ("0x"+endAddr) - ("0x"+startAddr);
-        	$("#showing-byte").html('<span id="status" class="label label-default">' + bytes + ' bytes</span>');
+        	$("#showing-byte").html('<button type="button" id="downloadCSV" class="btn btn-success" onclick="exportTableToCSV()">'
+        								+ '<span class="glyphicon glyphicon-download-alt"></span>'
+        								+ '</button>'
+        								+ '<span id="status-read" class="label label-default">'
+        								+ bytes
+        								+ ' bytes</span>');
         	
         	window.ws.send(JSON.stringify({"type":"readWisp"
     											, "startAddr": startAddr    										
@@ -117,10 +128,13 @@ $(document).ready(function() {
 	    		processData:false,
 	    		cache:false,
 	    		success:function(data){
-	    			var submitButton = '<button class="btn btn-warning" type="submit">Start to Write</button>'
-	    								+ '<span id="status" class="label label-default">'
+	    			var submitButton = '<button class="btn btn-warning" id="start-write" type="submit">Write</button>'
+	    								+ '<button type="button" id="downloadCSV" class="btn btn-success" onclick="exportTableToCSV()">'
+	    								+ '<span class="glyphicon glyphicon-download-alt"></span>'
+	    								+ '</button>'
+	    								+ '<span id="status-write" class="label label-default">'
 	    								+ data 
-	    								+ '</span>'	    								;
+	    								+ '</span>';
 	    			$("#upload-status").html(submitButton);
 	    		},
 	    		error:function(data){
@@ -218,3 +232,47 @@ $(document).on('change', ':file', function() {
       label = input.val().replace(/\\/g, '/').replace(/.*\//, '');
   input.trigger('fileselect', [numFiles, label]);
 });
+
+
+function exportTableToCSV() {
+    var csv = [];
+    var rows = document.querySelectorAll("table tr");
+    
+    for (var i = 0; i < rows.length; i++) {
+        var row = [], cols = rows[i].querySelectorAll("td, th");
+        
+        for (var j = 0; j < cols.length; j++) 
+            row.push(cols[j].innerText);
+        
+        csv.push(row.join(","));        
+    }
+
+    // Download CSV file
+    downloadCSV(csv.join("\n"), "result.csv");
+}
+
+function downloadCSV(csv, filename) {
+    var csvFile;
+    var downloadLink;
+
+    // CSV file
+    csvFile = new Blob([csv], {type: "text/csv"});
+
+    // Download link
+    downloadLink = document.createElement("a");
+
+    // File name
+    downloadLink.download = filename;
+
+    // Create a link to the file
+    downloadLink.href = window.URL.createObjectURL(csvFile);
+
+    // Hide download link
+    downloadLink.style.display = "none";
+
+    // Add the link to DOM
+    document.body.appendChild(downloadLink);
+
+    // Click download link
+    downloadLink.click();
+}
