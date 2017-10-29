@@ -24,27 +24,32 @@
 		<div class="col-lg-5">
 			<div class="EPC-readWisp input-group">
 				<span class="input-group-addon" id="basic-addon1">Start Address</span>
-				<input id="user-StartAddr-Att" class="form-control" type="text" required/>
+				<input id="user-StartAddr-Att" class="form-control" type="text" pattern="^[_A-f0-9]{4}" maxlength="4" required/>
 			</div>
 		</div>
-		<div class="col-lg-5">
+		<div class="col-lg-6">
 			<div class="EPC-readWisp input-group">
-				<span class="input-group-addon" id="basic-addon1">Memory Length</span>
-				<input id="user-MemLength" class="form-control" type="text" required/>
+				<span class="input-group-addon" id="basic-addon1">Round Count</span>
+				<input id="user-MemLength" class="form-control" type="text" maxlength="1" required/>
+				<div class="input-group-btn">
+					<button type="submit" class="btn btn-info">Verification</button>
+				</div>	
 			</div>
 		</div>
 	</div>
+	<!-- 
 	<div class="row">
 		<div class="col-lg-10">
 			<div class="EPC-readWisp input-group">
 				<span class="input-group-addon" id="basic-addon1">Random Number</span>
-				<input id="user-RanNum-Att" class="form-control" type="text" required/>
+				<input id="user-RanNum-Att" class="form-control" type="text" minlength="16" maxlength="16" required/>
 				<div class="input-group-btn">
 					<button type="submit" class="btn btn-info">Read Data</button>
 				</div>	
 			</div>
 		</div>
 	</div>
+	 -->
 </form>
 	<div class="row">
 	<div class="table-responsive" style="margin: 0 15px;">	
@@ -59,4 +64,3 @@
 	</div>
 	</div>
 </div>
-

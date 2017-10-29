@@ -500,7 +500,7 @@ def BlockChallengeAccess(pto, arg):
     OpSpecs                 = []
     
 #     hexContent = AttesSpecType + (hex(lengthofFramwork)[2:]).zfill(2) +  start_address + arg['user-RanNum-Att']
-    hexContent = AttesSpecType + arg['LOF'].zfill(2) +  start_address + numbers
+    hexContent = AttesSpecType + arg['LOF'].zfill(2) +  start_address
 
     print ('hex content : ', hexContent)
     OpSpecs.append(getBlockWriteMessage(1, (len(hexContent) / 4), hexContent))
