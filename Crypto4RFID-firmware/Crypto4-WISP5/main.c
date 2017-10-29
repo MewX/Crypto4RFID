@@ -75,12 +75,14 @@ void my_blockWriteCallback  (void) {
 
         WDTCTL = WDTPW + WDTHOLD;
         uint16_t LOF            = (wispData.blockWriteBufPtr[0])  & 0xFF;
-        uint64_t ran_num        = ((uint64_t)(((uint32_t)(wispData.blockWriteBufPtr[2]) << 16)
-                                | ((uint32_t)wispData.blockWriteBufPtr[3])) << 32)
-                                | ((uint64_t)(((uint32_t)(wispData.blockWriteBufPtr[4]) << 16)
-                                | ((uint32_t)wispData.blockWriteBufPtr[5])));
+//        uint64_t ran_num        = ((uint64_t)(((uint32_t)(wispData.blockWriteBufPtr[2]) << 16)
+//                                | ((uint32_t)wispData.blockWriteBufPtr[3])) << 32)
+//                                | ((uint64_t)(((uint32_t)(wispData.blockWriteBufPtr[4]) << 16)
+//                                | ((uint32_t)wispData.blockWriteBufPtr[5])));
         uint64_t checksum;
         uint16_t i_len;
+
+        uint64_t ran_num        = 0x1234567891234567;
 
 //        wispData.epcBuf[4] = (LOF) & 0xFF;
 
