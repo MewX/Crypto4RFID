@@ -6,4 +6,6 @@ Release/
 *.exe
 *.o
 *.swp
-
+*.zip
+Debug*/
+Release*/
