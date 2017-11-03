@@ -40,6 +40,13 @@ void my_writeCallback (void) {
     asm(" NOP");
 }
 
+
+uint8_t *tfunction(uint16_t ran_num, uint8_t *address) {
+    // TODO: change to 20 bit operation
+    ran_num += ((ran_num * ran_num) | (uint16_t)5) % 16;
+    return (uint8_t *) (((uint16_t)address ^ ran_num) & 0xFF) + 0xFF80;
+}
+
 /** 
  * This function is called by WISP FW after a successful BlockWrite
  *  command decode
@@ -55,36 +62,58 @@ void my_blockWriteCallback  (void) {
         uint8_t i               = 0;
 
         for (i = 0; i < 32; i+=2){
-            wispData.readBufPtr[i] = ((* (uint16_t *) (address + (offset<<1))) >> 8)  & 0xFF;
+            wispData.readBufPtr[i] = ((* (uint16_t *) (address + (offset<<1))))  & 0xFF;
             offset++;
         }
 
         offset                  = 0x00;
         for (i = 1; i < 32; i+=2){
-            wispData.readBufPtr[i] = ((* (uint16_t *) (address + (offset<<1))))  & 0xFF;
+            wispData.readBufPtr[i] = ((* (uint16_t *) (address + (offset<<1))) >> 8)  & 0xFF;
             offset++;
         }
     }else if (word_count == 0x2F){
 
         WDTCTL = WDTPW + WDTHOLD;
         uint16_t LOF            = (wispData.blockWriteBufPtr[0])  & 0xFF;
-        uint64_t ran_num        = ((uint64_t)(((uint32_t)(wispData.blockWriteBufPtr[2]) << 16)
-                                | ((uint32_t)wispData.blockWriteBufPtr[3])) << 32)
-                                | ((uint64_t)(((uint32_t)(wispData.blockWriteBufPtr[4]) << 16)
-                                | ((uint32_t)wispData.blockWriteBufPtr[5])));
+//        uint64_t ran_num        = ((uint64_t)(((uint32_t)(wispData.blockWriteBufPtr[2]) << 16)
+//                                | ((uint32_t)wispData.blockWriteBufPtr[3])) << 32)
+//                                | ((uint64_t)(((uint32_t)(wispData.blockWriteBufPtr[4]) << 16)
+//                                | ((uint32_t)wispData.blockWriteBufPtr[5])));
         uint64_t checksum;
+        uint16_t i_len;
 
-//         //Calculate checksum.
-         HASH_XTEA_PFMD(ran_num, (uint8_t *)address, (uint16_t)LOF, (uint8_t *)&checksum);
+        uint64_t ran_num        = 0x1234567891234567;
 
-         wispData.readBufPtr[0] = (checksum >> 56) & 0xFF;
-         wispData.readBufPtr[1] = (checksum >> 48) & 0xFF;
-         wispData.readBufPtr[2] = (checksum >> 40) & 0xFF;
-         wispData.readBufPtr[3] = (checksum >> 32) & 0xFF;
-         wispData.readBufPtr[4] = (checksum >> 24) & 0xFF;
-         wispData.readBufPtr[5] = (checksum >> 16) & 0xFF;
-         wispData.readBufPtr[6] = (checksum >> 8) & 0xFF;
-         wispData.readBufPtr[7] = (checksum >> 0) & 0xFF;
+//        wispData.epcBuf[4] = (LOF) & 0xFF;
+
+        for (i_len = 0; i_len < (int)LOF;)
+        {
+            // TODO: random data should be XOR inside
+            address = tfunction((uint16_t) ran_num, (uint8_t *)(uint32_t)address);
+            address %= 0x200;
+            address += 0x1800;
+            if ((uint32_t) address < 0x1800 || (uint32_t) address > 0x1a00)
+                continue;
+            //Calculate checksum.
+            HASH_XTEA_PFMD((uint64_t) ran_num, address, (uint16_t)0x08, (uint8_t *) &ran_num);
+            i_len++;
+
+//        wispData.epcBuf[2] = (address >> 8) & 0xFF;
+//        wispData.epcBuf[3] = (address) & 0xFF;
+        }
+//        *(uint16_t *)&wispData.epcBuf[4] = address;
+
+////         //Calculate checksum.
+//         HASH_XTEA_PFMD(ran_num, (uint8_t *)address, (uint16_t)LOF, (uint8_t *)&checksum);
+
+         wispData.readBufPtr[0] = (ran_num >> 56) & 0xFF;
+         wispData.readBufPtr[1] = (ran_num >> 48) & 0xFF;
+         wispData.readBufPtr[2] = (ran_num >> 40) & 0xFF;
+         wispData.readBufPtr[3] = (ran_num >> 32) & 0xFF;
+         wispData.readBufPtr[4] = (ran_num >> 24) & 0xFF;
+         wispData.readBufPtr[5] = (ran_num >> 16) & 0xFF;
+         wispData.readBufPtr[6] = (ran_num >> 8) & 0xFF;
+         wispData.readBufPtr[7] = (ran_num >> 0) & 0xFF;
 
 //        wispData.epcBuf[2] = (wispData.blockWriteBufPtr[2]  >> 8) & 0xFF;
 //        wispData.epcBuf[3] = (wispData.blockWriteBufPtr[2]) & 0xFF;

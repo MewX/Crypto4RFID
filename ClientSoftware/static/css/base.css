@@ -77,3 +77,11 @@ body {
 	margin-left: 5px;
 	margin-right: 0px;
 }
+
+#start-write{
+	margin-left: -10px;
+}
+
+#downloadCSV{
+	margin-left: 2px;
+}
