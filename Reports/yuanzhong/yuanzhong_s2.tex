@@ -42,7 +42,7 @@
 \begin{abstract}
     This report firstly introduces the background and motivation of this project.
     Then, our system overview, system components and my contributions are mentioned in detail.
-    My contribution include the encryption algorithm study, hash function study and optimization study.
+    My contribution include the block cipher algorithm study, hash function study and optimization study.
     Besides, others' related works on cryptanalysis, hash function cryptanalysis are mentioned as well.
     In the end, there are conclusions and my reflections about the whole project.
 \end{abstract}
@@ -71,8 +71,9 @@ However, CRFID has a limited amount of computational resources, which determines
 modern high-computational-complex encryption algorithms (like RSA algorithm) on it.
 Therefore, to build a security system becomes a crucial problem in research area.
 
-In this project, we mainly try to build a security CRFID system
-where the CRFID tag can verify a reader's legitimacy and the reader can identify a CRFID's legitimacy.
+In this project, we mainly try to build a secure CRFID system
+% Not implemented: the CRFID tag can verify a reader's legitimacy and
+where the reader can identify a CRFID's legitimacy.
 After passing the two-way verification, they can transfer the critical data securely.
 
 \subsection{Devices}
@@ -96,7 +97,7 @@ shown in Figure \ref{fig-launchpad}.
 
 \begin{figure}
 \centering
-\includegraphics[width=0.48\textwidth]{launchpad.jpg}
+\includegraphics[width=0.4\textwidth]{launchpad.jpg}
 \caption{MSP430FR5969 LaunchPad.}
 \label{fig-launchpad}
 \end{figure}
@@ -107,7 +108,7 @@ As a result, all my experiments in this project are tested on this LaunchPad.
 
 \subsection{System Overview}
 The whole system architecture is shown in Figure \ref{fig-arch}.
-It is the outcome of our teamwork.
+This system contains two components: PC client and WISP 5.
 
 \begin{figure*}
 \centering
@@ -116,17 +117,79 @@ It is the outcome of our teamwork.
 \label{fig-arch}
 \end{figure*}
 
+PC client contains a database storing a copy of FRAM and SRAM signature
+(used by Physical Unclonable Functions implemented by teammate Yang Su).
+Each copy of FRAM and SRAM are indexed by unique EPC value.
+
+WISP 5 is supposed to contain legit EPC value which is stored in PC's database,
+legit firmware which will be verified by my hash function,
+and legit SRAM signature which is used for generating real random number.
+
+The communication between PC client and WISP 5 follows the EPCglobal standard,
+the extended security command is implemented by teammate Sangyeol Kim.
+When connection established, PC will send WISP 5 a challenge which contains the beginning address and the round count.
+Round count is used together with \textit{t}-function (implemented by teammate Jingwen Shan),
+which will be introduced in Section \ref{sec-int} in detail.
+Once WISP 5 receives the challenge, it runs the hash function implemented by me to get a checksum and send it back to PC client;
+Meanwhile, PC client uses the same hash function to calculate the checksum, and compare it with the received checksum.
+If they matches, the WISP 5 is regarded as a legit one.
 
 \section{Related Works}
+% TODO: finish later
+% Two bench mark papers
+\subsection{Block Ciphers}
 
 
-\section{Encryption Algorithm}
+\subsection{Hash Functions}
+There is no cryptographic hash function survey researches from 2010.
+A most-cited one is survey paper from Bakhtiari \textit{et al.} in 1995 \cite{bakhtiari1995cryptographic}.
+The functions they discussed in that paper are MD2, MD4, MD5 and SHA-1.
+However it is not useful now because all those discussed functions are full attacked:
+
+\begin{itemize}
+    \item MD2 was shown to be vulnerable for collision by Muller in 2004,
+          using a preimage attack with a time complexity equivalent to $2^{104}$. \cite{muller2004md2}
+    \item MD4 was fully collided using cheap computational cost by Leurent
+          using preimage attack in a time complexity of $2^{102}$ in 2008. \cite{leurent2008md4}
+    \item MD5 has been proved its distribution is not safe since 2004 \cite{hawkes2004musings}.
+          Later in 2013, Xie \textit{et al.} published a method for a very quick collision attack \cite{xie2013fast},
+          which takes less than a second to attack it on a regular computer.
+    \item SHA-1 was also fully proved to be vulnerable for collision, using multi-block collision techniques
+          by Wang \textit{et al.} since 2005. \cite{wang2005finding}
+\end{itemize}
+
+Besides, there are many cryptographic hash function papers using block ciphers to construct hash functions.
+However, nearly all of the block ciphers are with key and block of same sizes.
+I can hardly find a paper constructing a hash function constructed using key and block of different sizes.
+This is not really helpful because the block ciphers we study are with various sizes of key and block.
+Therefore, this is the reason why I refer to open-source projects to seek \textit{g}-functions used for constructions
+in Section \ref{sec-one}.
+
+\subsection{MSP430 Algorithm Optimization}
+I have searched for ``assembly language'', ``MSP 430'' and ``Optimization'' key words on Google\texttrademark Scholar.
+The only results that I can find are about factory assembly lines or sequences.
+
+Additionally, the algorithms are evolutionary computation technologies. For example:
+\begin{itemize}
+    \item Dini \textit{et al.} derived a Genetic Algorithm to optimize assembling a simulated CAD product
+          to find a better sequence that assembles quickly. \cite{dini1999generation}
+    \item Haq \textit{et al.} derived a method to optimize load balance on assembly line
+          using a hybrid genetic algorithm. \cite{haq2006hybrid}
+\end{itemize}
+
+Above all, as far as I know, there is on manual code optimization researches
+on assembly programming language or MSP430 programming.
+Therefore, I referred to some online materials which are mentioned in Section \ref{sec-low}.
+
+
+\section{Block Cipher Algorithm}
 
 
 \section{Hash Functions}
-\subsection{One-way Compression Functions}
+\subsection{One-way Compression Functions} \label{sec-one}
 // TODO: constructions
 
+// TODO: g-functions
 
 \subsection{Cryptographic Hash Function}
 
@@ -134,14 +197,18 @@ It is the outcome of our teamwork.
 
 \subsection{Benchmark}
 
+\subsection{Integration with Whole System} \label{sec-int}
+
+
 
 \section{Optimization}
+
 \subsection{Compiler Optimization}
 
 \subsection{High-Level Programming Language Optimization}
 
-\subsection{Low-Level Programming Language Optimization}
-
+\subsection{Low-Level Programming Language Optimization} \label{sec-low}
+// TOOD: online materials
 
 
 
