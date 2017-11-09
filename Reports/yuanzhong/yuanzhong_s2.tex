@@ -12,6 +12,10 @@
 \usepackage{subcaption}
 \usepackage{gensymb}
 \usepackage{textcomp}
+\usepackage{xspace}
+
+\let\OldTexttrademark\texttrademark
+\renewcommand{\texttrademark}{\OldTexttrademark\xspace}%
 
 %% template settings
 \settopmatter{printacmref=false} % Removes citation information below abstract
@@ -74,8 +78,8 @@ After passing the two-way verification, they can transfer the critical data secu
 \subsection{Devices}
 In this project, we use WISP 5 \footnote{WISP5 - WISP Home: \url{https://wisp5.wikispaces.com/WISP+Home}.} (shown in Figure \ref{fig-wisp5})
 as the CRFID experimental device.
-It contains a TI MSP430FR5969 microcontroller \footnote{MSP430\texttrademark FR5969 16 MHz Ultra-Low-Power MCU: \url{http://www.ti.com/product/MSP430FR5969}.}
-which uses 16-bit architecture up to 16‑MHz Clock and has 2 KB Static Random Access Memory (SRAM) and 64 KB Ferroelectric RAM (FRAM).
+It contains a Texas Instruments (TI) MSP430FR5969 MCU \footnote{MSP430\texttrademark FR5969 16 MHz Ultra-Low-Power MCU: \url{http://www.ti.com/product/MSP430FR5969}.}
+which uses 16-bit architecture with up to 16‑MHz Clock, and has 2 KB Static Random Access Memory (SRAM) and 64 KB Ferroelectric RAM (FRAM).
 
 \begin{figure*}
 \centering
@@ -84,8 +88,33 @@ which uses 16-bit architecture up to 16‑MHz Clock and has 2 KB Static Random A
 \label{fig-wisp5}
 \end{figure*}
 
+The firmware is run by the MSP430 MCU. Hence, I only need to test algorithms on MSP430RF5969 no matter what CRFID I use.
+Moreover, we have only one WISP 5, and another team member needs it to test the communication between CRFID and reader.
+Therefore, I use another MSP430FR5969 come with MSP430FR5969 LaunchPad Development Kit
+\footnote{MSP-EXP430FR5969 MSP430FR5969 LaunchPad Development Kit: \url{http://www.ti.com/tool/MSP-EXP430FR5969}.}
+shown in Figure \ref{fig-launchpad}.
+
+\begin{figure}
+\centering
+\includegraphics[width=0.48\textwidth]{launchpad.jpg}
+\caption{MSP430FR5969 LaunchPad.}
+\label{fig-launchpad}
+\end{figure}
+
+For debugging, there is no difference theoretically, plus, it provides some additional useful tools
+like EnergyTrace++\texttrademark which can trace MCU current consumption.
+As a result, all my experiments in this project are tested on this LaunchPad.
 
 \subsection{System Overview}
+The whole system architecture is shown in Figure \ref{fig-arch}.
+It is the outcome of our teamwork.
+
+\begin{figure*}
+\centering
+\includegraphics[width=0.7\textwidth]{arch.pdf}
+\caption{System architecture.}
+\label{fig-arch}
+\end{figure*}
 
 
 \section{Related Works}
