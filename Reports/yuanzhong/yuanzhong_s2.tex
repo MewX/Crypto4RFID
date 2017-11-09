@@ -65,15 +65,24 @@ It also contains several custom security extension commands for developers to us
 
 However, CRFID has a limited amount of computational resources, which determines that it is unlikely to apply
 modern high-computational-complex encryption algorithms (like RSA algorithm) on it.
-Therefore, to build a security system becomes a popular problem in research area.
+Therefore, to build a security system becomes a crucial problem in research area.
 
-\subsection{Security Issues}
-
+In this project, we mainly try to build a security CRFID system
+where the CRFID tag can verify a reader's legitimacy and the reader can identify a CRFID's legitimacy.
+After passing the two-way verification, they can transfer the critical data securely.
 
 \subsection{Devices}
-In this project, we use WISP 5 \footnote{WISP5 - WISP Home: \url{https://wisp5.wikispaces.com/WISP+Home}.} as the CRFID experimental device.
+In this project, we use WISP 5 \footnote{WISP5 - WISP Home: \url{https://wisp5.wikispaces.com/WISP+Home}.} (shown in Figure \ref{fig-wisp5})
+as the CRFID experimental device.
 It contains a TI MSP430FR5969 microcontroller \footnote{MSP430\texttrademark FR5969 16 MHz Ultra-Low-Power MCU: \url{http://www.ti.com/product/MSP430FR5969}.}
 which uses 16-bit architecture up to 16‑MHz Clock and has 2 KB Static Random Access Memory (SRAM) and 64 KB Ferroelectric RAM (FRAM).
+
+\begin{figure*}
+\centering
+\includegraphics[width=0.6\textwidth]{wisp5.png}
+\caption{WISP 5 CRFID.}
+\label{fig-wisp5}
+\end{figure*}
 
 
 \subsection{System Overview}
