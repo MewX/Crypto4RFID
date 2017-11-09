@@ -40,9 +40,9 @@
 %% abstract
 % ---------
 \begin{abstract}
-    This report firstly introduces the background and motivation of this project.
+    This report firstly introduces the background and motivation of this project, which is to build a secure CRFID system.
     Then, our system overview, system components and my contributions are mentioned in detail.
-    My contribution include the block cipher algorithm study, hash function study and optimization study.
+    My contribution include the lightweight block cipher algorithm study, hash function study and optimization study.
     Besides, others' related works on cryptanalysis, hash function cryptanalysis are mentioned as well.
     In the end, there are conclusions and my reflections about the whole project.
 \end{abstract}
@@ -135,13 +135,33 @@ Meanwhile, PC client uses the same hash function to calculate the checksum, and 
 If they matches, the WISP 5 is regarded as a legit one.
 
 \section{Related Works}
-% TODO: finish later
-% Two bench mark papers
-\subsection{Block Ciphers}
+\subsection{Lightweight Block Cipher Algorithms}
+Papers on lightweight block cipher algorithms are mentioned in Section \ref{sec-block} in detail.
+Hence, they are not discussed with related works.
 
+Besides, there some benchmark survey papers on lightweight block cipher algorithms:
+
+\begin{itemize}
+    \item In 2013, Cazorla \textit{et al.} published a survey paper comparing the performance between
+          many lightweight block cipher algorithms using an MSP430 simulator called ``mspdebug''.
+          \footnote{mspdebug GitHub repository: \url{https://github.com/dlbeer/mspdebug}.} \cite{cazorla2013survey}
+    \item In 2014, Buhrow \textit{et al.} published a survey paper comparing different implementations
+          of selected lightweight block cipher algorithms. \cite{buhrow2014block}
+    \item In 2015, Cazorla \textit{et al.} again published a new survey paper comparing the performance between
+          a set of lightweight block cipher algorithms using a real MSP430FG4618 device. \cite{cazorla2015survey}
+    \item In 2017, Hatzivasilis \textit{et al.} published a survey on more than 30 lightweight block cipher algorithms.
+          They only did some benchmark because a part of the algorithms did not have reference implementations. \cite{hatzivasilis2017review}
+\end{itemize}
+
+However, the first three survey papers did not mention cryptanalysis of the selected block cipher algorithms.
+The last paper mentioned the cryptanalysis, but it used the standard 8051 MCU and the ATtiny45, instead of MSP430.
+
+Moreover, the two papers from Cazorla \textit{et al.} conflicts with each other.
+As well, our experiment results on MSP430FR5969 are in conflict with Cazorla \textit{et al.}'s two papers.
+That is also one of the project's motivations.
 
 \subsection{Hash Functions}
-There is no cryptographic hash function survey researches from 2010.
+As far as I know, there is no cryptographic hash function survey researches from 2010.
 A most-cited one is survey paper from Bakhtiari \textit{et al.} in 1995 \cite{bakhtiari1995cryptographic}.
 The functions they discussed in that paper are MD2, MD4, MD5 and SHA-1.
 However it is not useful now because all those discussed functions are full attacked:
@@ -170,6 +190,7 @@ I have searched for ``assembly language'', ``MSP 430'' and ``Optimization'' key 
 The only results that I can find are about factory assembly lines or sequences.
 
 Additionally, the algorithms are evolutionary computation technologies. For example:
+
 \begin{itemize}
     \item Dini \textit{et al.} derived a Genetic Algorithm to optimize assembling a simulated CAD product
           to find a better sequence that assembles quickly. \cite{dini1999generation}
@@ -182,7 +203,7 @@ on assembly programming language or MSP430 programming.
 Therefore, I referred to some online materials which are mentioned in Section \ref{sec-low}.
 
 
-\section{Block Cipher Algorithm}
+\section{Lightweight Block Cipher Algorithm} \label{sec-block}
 
 
 \section{Hash Functions}
