@@ -185,7 +185,7 @@ This is not really helpful because the block ciphers we study are with various s
 Therefore, this is the reason why I refer to open-source projects to seek \textit{g}-functions used for constructions
 in Section \ref{sec-one}.
 
-\subsection{MSP430 Algorithm Optimization}
+\subsection{Algorithm Optimization on MSP430}
 I have searched for ``assembly language'', ``MSP 430'' and ``Optimization'' key words on Google\texttrademark Scholar.
 The only results that I can find are about factory assembly lines or sequences.
 
@@ -205,6 +205,179 @@ Therefore, I referred to some online materials which are mentioned in Section \r
 
 \section{Lightweight Block Cipher Algorithm} \label{sec-block}
 
+A lightweight implementation is defined as requiring up to 32 KB ROM and 8 KB RAM by Manifavas \textit{et al.}'s work\cite{manifavas2014lightweight}.
+All our selected lightweight algorithms satisfy these requirements.
+Moreover, in this project, we need decipher functions only because cipher operations can be performed in PC which has rich computational resources.
+
+At the beginning, we selected seven block cipher algorithms from Cazorla \textit{et al.}'s two papers \cite{cazorla2013survey, cazorla2015survey}.
+Those seven algorithms were AES-128\cite{pub2001197}, LBlock\cite{wu2011lblock}, MIBS-64\cite{izadi2009mibs},
+Piccolo-128\cite{shibutani2011piccolo}, SEA\cite{standaert2006sea}, SPECK64-128\cite{beaulieu2015simon}, XTEA\cite{needham1997tea, wheeler1998correction}.
+The experiments results can be seen in Table \ref{tab-beg}.
+
+\begin{table*}[tbp]
+\centering
+\caption{Experiments on AES-128, LBlock, MIBS-64, Piccolo-128, SEA, SPECK64-128 and XTEA,
+using TI v2016 compiler -O3 speed optimization.
+Column ``Begin'' means cumulated cycle counter at the entry of the decipher function;
+while column ``End'' means the cumulated cycle count after the decipher function returns.
+Therefore, column ``Cycle count'' equals to the difference between ``End'' and ``Begin''.
+Code size is the decipher function's binary code size;
+whereas the internal state size is the maximum in-use local variable size (function parameters are excluded).}
+\label{tab-beg}
+\begin{tabular}{lcrrrrr}
+    \toprule
+Algorithm   & Type     & Begin & End   & Cycle count & Code size (bytes) & Internal state size (bytes) \\
+    \midrule
+AES         & decipher & 233   & 26303 & 26070       & 2538              & 18                          \\
+LBlock      & decipher & 94    & 8300  & 8206        & 374               & 10                          \\
+MIBS64      & decipher & 176   & 26312 & 26136       & 720               & 18                          \\
+Piccolo128  & decipher & 215   & 16137 & 15922       & 2124              & 24                          \\
+SEA         & decipher & 116   & 21682 & 21566       & 678               & 18                          \\
+SPECK64-128 & decipher & 327   & 25328 & 25001       & 414               & 20                          \\
+XTEA        & decipher & 115   & 12430 & 12315       & 666               & 24                          \\
+    \bottomrule
+\end{tabular}
+\end{table*}
+
+After that, I got a new requirement - finding lightweight block cipher algorithms of which at least half rounds remained un-attacked.
+As a result, I found that some of our candidates had been fully attacked.
+These algorithms were: MIBS and PRESENT \cite{bogdanov2007present} full-round attacked by Sereshgi \textit{et al.} \cite{sereshgi2016biclique},
+Piccolo full-round attacked by Han \textit{et al.} \cite{han2017improved}, Klein \cite{gong2011klein} full-round attacked by Ahmadian \textit{et al.} \cite{ahmadian2015biclique},
+LED \cite{Guo:2011:LBC:2044928.2044958} and mCrypton \cite{lim2005mcrypton} full-round attacked by Jeong \textit{et al.} \cite{jeong2015weakness},
+and TWINE \cite{suzaki2012twine} full-round attacked by Najarkolaei \textit{et al.} \cite{najarkolaei2016biclique}.
+Those unsafe algorithms are not studied in this project anymore.
+
+Finally, the selected ten secure lightweight block cipher algorithms are:
+AES-128, Camellia \cite{aoki2000camellia}, CLEFIA \cite{shirai2007128}, LBlock, LEA \cite{hong2013lea},
+PRINCE \cite{borghoff2012prince}, SEA, SIMON \cite{beaulieu2015simon}, SPECK and XTEA.
+
+My survey results on their cryptanalysis and best attack records are shown in Table \ref{tab-security}.
+
+\begin{table*}[tbp]
+\centering
+\caption{Survey results on selected secure block cipher algorithms.}
+\label{tab-security}
+\begin{tabular}{lrcrrr}
+    \toprule
+Name (block/key)   & Reference & Structure & Round (attacked/total) & Attack time complexity & Attack reference \\
+    \midrule
+AES128 (128/128) & \cite{pub2001197} & SPN & 7/10 & $2^{100}$ & \cite{derbez2013improved} \\
+Camellia (128/128) & \cite{aoki2000camellia} & Feistel & 11/18 & $2^{121.3}$ & \cite{li2015meet} \\
+CLEFIA (128/128) & \cite{shirai2007128} & Feistel & 14/18 & $2^{108}$ & \cite{li2015meet} \\
+LBlock (64/80) & \cite{wu2011lblock} & Feistel   & 24/32 & $2^{75.42}$ & \cite{xie2017related} \\
+LEA (128/128) & \cite{hong2013lea} & ARX & 14/24 & $2^{124.02}$ & \cite{song2016automatic} \\
+PRINCE (64/128) & \cite{borghoff2012prince} & SPN & 9/12 & $2^{55.14}$ & \cite{cheng2017multidimensional} \\
+SEA (96/96) & \cite{standaert2006sea} & Feistel & (N/A)/95 & N/A & N/A \\
+SIMON (64/128) & \cite{beaulieu2015simon} & Feistel & 31/44 & $2^{119.62}A+2^{120.00}E$\tnote{*} & \cite{chen2016improved} \\
+SPECK (64/128) & \cite{beaulieu2015simon} & Feistel & 19/27 & $2^{125}$ & \cite{dinur2014improved} \\
+XTEA (64/128) & \cite{wheeler1998correction} & Feistel & 27/64 & $2^{120.71}$ & \cite{bogdanov2012zero} \\
+    \bottomrule
+\end{tabular}
+\end{table*}
+
+For those algorithms, we use the reference codes from Cazorla \textit{et al.}
+\footnote{Source code developed in the BLOC project: \url{https://github.com/kmarquet/bloc}} by default.
+If the algorithm is not implemented by Cazorla \textit{et al.}, the reference implementation will be mentioned in the following texts.
+
+\begin{itemize}
+    \item
+\textbf{AES}. The AES \cite{pub2001197} is a very popular studied algorithm, and it has both hardware and software implementations.
+In this paper, we discuss 128-bit-key version only. So far, successful 7-round (out of ten) attacks have been published by many researchers,
+and the best time complexity we could find is $2^{100}$ by Derbez \textit{et al.} \cite{derbez2013improved}.
+
+    \item
+\textbf{Camellia}. The Camellia \cite{aoki2000camellia} has variable key sizes and we only study the 128-bit key size version with 128-bit block.
+The codes we use to test for this algorithm are the latest version (v1.2.0) from the company officially \cite{ntt2007},
+and the greatest round attack is on 11-round by Li \textit{et al.} \cite{li2015meet}.
+
+    \item
+\textbf{CLEFIA}. The CLEFIA \cite{shirai2007128} is developed by Sony \cite{sony2008},
+and it has 128-bit block and three different key size versions: 128-bit, 192-bit and 256-bit keys.
+In this paper we discuss 128-bit key version because smaller key versions are often faster.
+Most attacks on CLEFIA are based on 192-bit key and 256-bit key versions, hence there are less attacks on 128-bit key version.
+The greatest round attack we could find on 128-bit key version is on 14-round also by Li \textit{et al.} \cite{li2015meet}.
+
+    \item
+\textbf{LBlock}. The LBlock \cite{wu2011lblock} has 32 rounds with 64-bit block and 80-bit key.
+The best attack using Related-Key Impossible Differential is on 24-round with a time complexity of $2^{75.42}$ by Xie \textit{et al.} \cite{xie2017related}.
+
+    \item
+\textbf{LEA}. The LEA \cite{hong2013lea} is designed for 32 bit processor which the authors think is the most common processor type,
+and the best attack is 14-round attack by Song \textit{et al.} \cite{song2016automatic}.
+It takes 128-bit key and 128-bit block. To test it on MSP430, we use an 8-bit implementation by KISA \cite{kisa2015}.
+
+    \item
+\textbf{PRINCE}. The PRINCE \cite{borghoff2012prince} takes 64-bit block and 128-bit key.
+The best attack is on 9th round (out of 12) with time complexity of $2^{55.14}$.
+This block cipher uses a lot of 64-bit operations which can be found on the reference implementation by Riou \cite{sebastienriou2016}.
+Therefore, to test it on MSP430, we use an 8-bit implementation by Dare \cite{chrisdare2016}.
+
+    \item
+\textbf{SEA}. The SEA \cite{standaert2006sea} block cipher we use in this paper has 96-bit block size and key size.
+According to the original paper, the author suggests to use $\frac{3n}{4}+2\cdot (n_{b}+\left \lfloor b/2 \right \rfloor)$ rounds and the round number must be odd.
+On MSP430 platform, it should have 95 rounds in total, which is our modified version based on Cazorla \textit{et al.}'s project.
+In addition, we could hardly find cryptanalysis works on SEA block cipher.
+Although, the original paper contains some attack analysis, they are not experiment results. Therefore, we leave the attack information on SEA not applicable.
+
+    \item
+\textbf{SIMON and SPECK}. SIMON and SPECK are presented in the same paper by Beaulieu \textit{et al.} \cite{beaulieu2015simon}
+and they support different block sizes and key sizes. In this paper, we use 64-bit block and 128-bit key only for both SIMON and SPECK.
+For SIMON, the best attack is 31 round (out of 44) using improved hull attack by Chen \textit{et al.} \cite{chen2016improved};
+whereas for SPECK, the best attack is 19 round (out of 27) by Dinur \cite{dinur2014improved}.
+
+    \item
+\textbf{XTEA}. The XTEA \cite{wheeler1998correction} is a very old algorithm, but it is still very strong against attacks.
+The greatest attack round by now is 27 rounds by Bogdanov \textit{et al.} \cite{bogdanov2012zero} with a time complexity of $2^{120.71}$.
+\end{itemize}
+
+Furthermore, the benchmark results on those ten algorithms are shown in Table \ref{tab-speed} and \ref{tab-size}.
+
+\begin{table*}[tbp]
+\centering
+\caption{Block cipher performance with optimization setting (-O3) using ``gcc-6.4.0.32 win32'' compiler.}
+\label{tab-speed}
+\begin{tabular}{lrrrrr}
+    \toprule
+Name     & Block size & Cycle count & Cycle per byte & ROM usage & RAM usage \\
+    \midrule
+AES128   & 128        & 12528       & 783            & 4634      & 18        \\
+Camellia & 128        & 42960       & 2685           & 19866     & 268       \\
+CLEFIA   & 128        & 38547       & 2409           & 4044      & 292       \\
+LBlock   & 64         & 18282       & 2285.25        & 1126      & 10        \\
+LEA      & 128        & 17014       & 1063           & 1724      & 44        \\
+PRINCE   & 64         & 11001       & 1375           & 2960      & 22        \\
+SEA      & 96         & 38072       & 3173           & 904       & 18        \\
+SIMON    & 64         & 4627        & 578            & 676       & 5         \\
+SPECK    & 64         & 10808       & 1351           & 382       & 1         \\
+XTEA     & 64         & 22130       & 2766           & 384       & 24       \\
+    \bottomrule
+\end{tabular}
+\end{table*}
+
+
+\begin{table*}[tbp]
+\centering
+\caption{Block cipher performance with setting (-Os) using ``gcc-6.4.0.32 win32'' compiler.}
+\label{tab-size}
+\begin{tabular}{lrrrrr}
+    \toprule
+Name     & Block size & Cycle count & Cycle per byte & ROM usage & RAM usage \\
+    \midrule
+AES128   & 128        & 26822       & 1676           & 1136      & 18        \\
+Camellia & 128        & 42959       & 2685           & 19866     & 268       \\
+CLEFIA   & 128        & 70658       & 4416           & 1784      & 292       \\
+LBlock   & 64         & 18769       & 2346           & 704       & 10        \\
+LEA      & 128        & 16646       & 1040           & 1678      & 44        \\
+PRINCE   & 64         & 14916       & 1865           & 1006      & 22        \\
+SEA      & 96         & 65177       & 5431           & 660       & 18        \\
+SIMON    & 64         & 13198       & 9939           & 326       & 5         \\
+SPECK    & 64         & 9939        & 1242           & 306       & 1         \\
+XTEA     & 64         & 24423       & 3053           & 410       & 24       \\
+    \bottomrule
+\end{tabular}
+\end{table*}
+
+
 
 \section{Hash Functions}
 \subsection{One-way Compression Functions} \label{sec-one}
@@ -219,7 +392,7 @@ Therefore, I referred to some online materials which are mentioned in Section \r
 \subsection{Benchmark}
 
 \subsection{Integration with Whole System} \label{sec-int}
-
+// TODO: round-count
 
 
 \section{Optimization}
