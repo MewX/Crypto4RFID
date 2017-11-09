@@ -160,7 +160,7 @@ Moreover, the two papers from Cazorla \textit{et al.} conflicts with each other.
 As well, our experiment results on MSP430FR5969 are in conflict with Cazorla \textit{et al.}'s two papers.
 That is also one of the project's motivations.
 
-\subsection{Hash Functions}
+\subsection{Cryptographic Hash Functions}
 As far as I know, there is no cryptographic hash function survey researches from 2010.
 A most-cited one is survey paper from Bakhtiari \textit{et al.} in 1995 \cite{bakhtiari1995cryptographic}.
 The functions they discussed in that paper are MD2, MD4, MD5 and SHA-1.
@@ -334,11 +334,12 @@ Furthermore, the benchmark results on those ten algorithms are shown in Table \r
 
 \begin{table*}[tbp]
 \centering
-\caption{Block cipher performance with optimization setting (-O3) using ``gcc-6.4.0.32 win32'' compiler.}
+\caption{Block cipher performance with optimization setting (-O3) using ``gcc-6.4.0.32 win32'' compiler.
+Column ``Code size'' and ``Internal state size'' are explained in Table \ref{tab-beg}.}
 \label{tab-speed}
 \begin{tabular}{lrrrrr}
     \toprule
-Name     & Block size & Cycle count & Cycle per byte & ROM usage & RAM usage \\
+Name     & Block size & Cycle count & Cycle per byte & Code size (bytes) & Internal state size (bytes) \\
     \midrule
 AES128   & 128        & 12528       & 783            & 4634      & 18        \\
 Camellia & 128        & 42960       & 2685           & 19866     & 268       \\
@@ -357,11 +358,12 @@ XTEA     & 64         & 22130       & 2766           & 384       & 24       \\
 
 \begin{table*}[tbp]
 \centering
-\caption{Block cipher performance with setting (-Os) using ``gcc-6.4.0.32 win32'' compiler.}
+\caption{Block cipher performance with setting (-Os) using ``gcc-6.4.0.32 win32'' compiler.
+Column ``Code size'' and ``Internal state size'' are explained in Table \ref{tab-beg}.}
 \label{tab-size}
 \begin{tabular}{lrrrrr}
     \toprule
-Name     & Block size & Cycle count & Cycle per byte & ROM usage & RAM usage \\
+Name     & Block size & Cycle count & Cycle per byte & Code size (bytes) & Internal state size (bytes) \\
     \midrule
 AES128   & 128        & 26822       & 1676           & 1136      & 18        \\
 Camellia & 128        & 42959       & 2685           & 19866     & 268       \\
@@ -378,21 +380,72 @@ XTEA     & 64         & 24423       & 3053           & 410       & 24       \\
 \end{table*}
 
 
+\section{Cryptographic Hash Functions}
+Cryptographic hash functions take any length of input and return a fixed size-block hash value (checksum).
+To return a fixed-size block hash value is very easy, simply by invoking a block cipher function.
+However, to take any length of input to generate a fixed-size block is not that easy.
+We need to apply one-way compression functions to block cipher functions.
 
-\section{Hash Functions}
 \subsection{One-way Compression Functions} \label{sec-one}
-// TODO: constructions
+A one-way compression function is supposed to take two fixed-size block and generate one fixed-size block.
+To build hash functions from block cipher algorithms, the one-way compression function is also known as construction.
 
-// TODO: g-functions
+In our experiments, we use Prefix-Free Merkle--Damgard construction (PFMD) \cite{mirvaziri2007collision}, Matyas--Meyer--Oseas (MMO) construction \cite{wikipedia2017one}
+and Miyaguchi--Preneel (MP) construction \cite{wikipedia2017one} to convert block cipher's decipher functions into hash functions.
+When dealing with $a$-size-to-$b$-size constructions, I firstly tried to find authoritative research papers using different \textit{g}-functions.
+However, as far as I searched, there was no such paper explaining the choice of \textit{g}-function.
+Therefore, I referred to some open source security implementations.
+There are mainly two types of implementations: padding zeros \cite{naoyukimorita2017},
+duplicating inputs to perform $n$-to-$2n$ mapping \cite{nikhilvarghese2017}.
 
-\subsection{Cryptographic Hash Function}
+we decide to use padding zeros as the \textit{g}-functions to perform $a$-size-to-$b$-size mapping,
+because the algorithms we select contain LBlock that uses 80-bit key and 64-bit block,
+which does not suit the rest two mapping strategies; and the block sizes are less than or equal to the key sizes.
+As a result, padding zeros is very flexible and suitable for our experiments.
 
-\subsection{Pure Hash Function}
+% \subsection{Cryptographic Hash Functions}
+% NOT GOING TO DO: \subsection{Pure Hash Function}
 
 \subsection{Benchmark}
+After I constructed the 30 hash functions \footnote{The 30 hash functions constructed by me: \url{https://github.cs.adelaide.edu.au/Mobile-Wireless-Systems-2017-S2/Crypto4RFID-1/tree/master/Hash/hash-testbench}.}
+using PFMD, MMO and MP on the selected ten block cipher algorithms,
+I need to benchmark the security and performance of those constructed hash functions,
+because those hash functions are not guaranteed to be collision-free and safe.
 
-\subsection{Integration with Whole System} \label{sec-int}
-// TODO: round-count
+We applied a tool called ``SMHasher'' \footnote{Our forked SMHasher: \url{https://github.com/MewX/smhasher/tree/master/src/ourhash}.}
+to all those hash functions respectively.
+This tool provides 14 tests:
+
+\begin{enumerate}
+    \item Sanity tests
+    \item Speed tests
+    \item Differential tests
+    \item Differential-distribution tests
+    \item Avalanche tests
+    \item Bit Independence Criteria tests
+    \item Keyset Cyclic tests
+    \item Keyset TwoBytes tests
+    \item Keyset Sparse tests
+    \item Keyset Permutation tests
+    \item Keyset Window tests
+    \item Keyset Text tests
+    \item Keyset Zero tests
+    \item Keyset Seed tests
+\end{enumerate}
+
+However, this is our future work because I have not figured out the indicators on the report yet.
+
+\subsection{Integration with the Whole System} \label{sec-int}
+First of all, all the constructed hash functions have the same function signature, thus, the hash function can be changed seamlessly if we find an in-use one has some issues.
+Also, our PC client is a cross-platform software, so I implemented the Python hash function interface to invoke original C codes.
+It not only keeps the cross-platform feature, but also reduces the unnecessary workload of implementing hash function in Python again.
+
+The hash function in the system takes two parameters: starting address, round count, nonce.
+The starting address is the beginning address of the plain text and the nonce is either random number from PUF or the checksum from previous step.
+
+The hash function calculates the resulting checksum for a whole block length from the starting address.
+In each round, the starting address is converted to a new address by the \textit{t}-function.
+Then, repeat this step until it calculates the checksum for ``round count'' times.
 
 
 \section{Optimization}
@@ -400,16 +453,16 @@ XTEA     & 64         & 24423       & 3053           & 410       & 24       \\
 \subsection{Compiler Optimization}
 
 \subsection{High-Level Programming Language Optimization}
+// TODO: methods
 
 \subsection{Low-Level Programming Language Optimization} \label{sec-low}
 // TOOD: online materials
 
 
-
-
-// TODO: feedback from writing centre
+% TODO: feedback from writing centre
 
 \section{Conclusion}
+// TODO:
 
 
 % -----------
