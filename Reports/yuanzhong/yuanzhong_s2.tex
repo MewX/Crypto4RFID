@@ -42,7 +42,7 @@
     Besides, others' related works on cryptanalysis, hash function cryptanalysis are mentioned as well.
     In the end, there are conclusions and my reflections about the whole project.
 \end{abstract}
-\keywords{Embedded System, CRFID, Encryption, Hash, Optimization, Security}
+\keywords{Embedded System, RFID, Encryption, Hash, MSP430, Optimization, Security}
 \maketitle
 
 
@@ -52,8 +52,29 @@
 
 % Excellent introduction and motivation of the project, clearly outlining the potential of the work.
 \section{Introduction and Motivation}
+Radio Frequency Identification (RFID) technologies have been widely used in our daily lives:
+student cards, contactless payment, object tracking (like airport baggages, express packages and experimental animals),
+item identification, distributed wireless sensor networks used for environment monitoring, etc. \cite{wikipedia2017rfid}
+They are normally built with Application Specific Integrated Circuits (ASIC).
+
+Unlike RFID, Computational RFID (CRFID) that our studies are based on has an ultra low power microcontroller (MCU),
+thus it has a firmware software which we can specifically modify for our applications.
+The firmware follows the EPC\texttrademark Radio-Frequency Identity Protocols Class-1 Generation-2 UHF RFID version 2\cite{epcglobal2013}.
+This standard defines how a tag is captured by a reader, and how information are transmitted between reader and tag.
+It also contains several custom security extension commands for developers to use in their implementations.
+
+However, CRFID has a limited amount of computational resources, which determines that it is unlikely to apply
+modern high-computational-complex encryption algorithms (like RSA algorithm) on it.
+Therefore, to build a security system becomes a popular problem in research area.
+
+\subsection{Security Issues}
+
 
 \subsection{Devices}
+In this project, we use WISP 5 \footnote{WISP5 - WISP Home: \url{https://wisp5.wikispaces.com/WISP+Home}.} as the CRFID experimental device.
+It contains a TI MSP430FR5969 microcontroller \footnote{MSP430\texttrademark FR5969 16 MHz Ultra-Low-Power MCU: \url{http://www.ti.com/product/MSP430FR5969}.}
+which uses 16-bit architecture up to 16‑MHz Clock and has 2 KB Static Random Access Memory (SRAM) and 64 KB Ferroelectric RAM (FRAM).
+
 
 \subsection{System Overview}
 
