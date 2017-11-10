@@ -42,7 +42,7 @@
 \begin{abstract}
     This report firstly introduces the background and motivation of this project, which is to build a secure CRFID system.
     Then, our system overview, system components and my contributions are mentioned in detail.
-    My contribution include the lightweight block cipher algorithm study, hash function study and optimization study.
+    My contributions include the lightweight block cipher algorithm study, hash function study and optimization study.
     Besides, others' related works on cryptanalysis, hash function cryptanalysis are mentioned as well.
     In the end, there are conclusions and my reflections about the whole project.
 \end{abstract}
@@ -57,19 +57,19 @@
 % Excellent introduction and motivation of the project, clearly outlining the potential of the work.
 \section{Introduction and Motivation}
 Radio Frequency Identification (RFID) technologies have been widely used in our daily lives:
-student cards, contactless payment, object tracking (like airport baggages, express packages and experimental animals),
+student cards, contactless payment, object tracking (like airport baggage, express packages and experimental animals),
 item identification, distributed wireless sensor networks used for environment monitoring, etc. \cite{wikipedia2017rfid}
 They are normally built with Application Specific Integrated Circuits (ASIC).
 
-Unlike RFID, Computational RFID (CRFID) that our studies are based on has an ultra low power microcontroller (MCU),
+Unlike RFID, Computational RFID (CRFID) that our studies are based on has an ultra-low power microcontroller (MCU),
 thus it has a firmware software which we can specifically modify for our applications.
 The firmware follows the EPC\texttrademark Radio-Frequency Identity Protocols Class-1 Generation-2 UHF RFID version 2\cite{epcglobal2013}.
-This standard defines how a tag is captured by a reader, and how information are transmitted between reader and tag.
+This standard defines how a tag is captured by a reader, and how information is transmitted between reader and tag.
 It also contains several custom security extension commands for developers to use in their implementations.
 
-However, CRFID has a limited amount of computational resources, which determines that it is unlikely to apply
+However, CRFID has a limited amount of computational resources, which determines that it be unlikely to apply
 modern high-computational-complex encryption algorithms (like RSA algorithm) on it.
-Therefore, to build a security system becomes a crucial problem in research area.
+Therefore, to build a security system becomes a crucial problem in the research area.
 
 In this project, we mainly try to build a secure CRFID system
 % Not implemented: the CRFID tag can verify a reader's legitimacy and
@@ -123,7 +123,7 @@ Each copy of FRAM and SRAM are indexed by unique EPC value.
 
 WISP 5 is supposed to contain legit EPC value which is stored in PC's database,
 legit firmware which will be verified by my hash function,
-and legit SRAM signature which is used for generating real random number.
+and legit SRAM signature which is used for generating real random numbers.
 
 The communication between PC client and WISP 5 follows the EPCglobal standard,
 the extended security command is implemented by teammate Sangyeol Kim.
@@ -132,7 +132,7 @@ Round count is used together with \textit{t}-function (implemented by teammate J
 which will be introduced in Section \ref{sec-int} in detail.
 Once WISP 5 receives the challenge, it runs the hash function implemented by me to get a checksum and send it back to PC client;
 Meanwhile, PC client uses the same hash function to calculate the checksum, and compare it with the received checksum.
-If they matches, the WISP 5 is regarded as a legit one.
+If they match, the WISP 5 is regarded as a legit one.
 
 \section{Related Works}
 \subsection{Lightweight Block Cipher Algorithms}
@@ -142,12 +142,12 @@ Hence, they are not discussed with related works.
 Besides, there some benchmark survey papers on lightweight block cipher algorithms:
 
 \begin{itemize}
-    \item In 2013, Cazorla \textit{et al.} published a survey paper comparing the performance between
+    \item In 2013, Cazorla \textit{et al.} published a survey paper comparing the performance among
           many lightweight block cipher algorithms using an MSP430 simulator called ``mspdebug''.
           \footnote{mspdebug GitHub repository: \url{https://github.com/dlbeer/mspdebug}.} \cite{cazorla2013survey}
     \item In 2014, Buhrow \textit{et al.} published a survey paper comparing different implementations
           of selected lightweight block cipher algorithms. \cite{buhrow2014block}
-    \item In 2015, Cazorla \textit{et al.} again published a new survey paper comparing the performance between
+    \item In 2015, Cazorla \textit{et al.} again published a new survey paper comparing the performance among
           a set of lightweight block cipher algorithms using a real MSP430FG4618 device. \cite{cazorla2015survey}
     \item In 2017, Hatzivasilis \textit{et al.} published a survey on more than 30 lightweight block cipher algorithms.
           They only did some benchmark because a part of the algorithms did not have reference implementations. \cite{hatzivasilis2017review}
@@ -156,36 +156,36 @@ Besides, there some benchmark survey papers on lightweight block cipher algorith
 However, the first three survey papers did not mention cryptanalysis of the selected block cipher algorithms.
 The last paper mentioned the cryptanalysis, but it used the standard 8051 MCU and the ATtiny45, instead of MSP430.
 
-Moreover, the two papers from Cazorla \textit{et al.} conflicts with each other.
-As well, our experiment results on MSP430FR5969 are in conflict with Cazorla \textit{et al.}'s two papers.
+Moreover, the two papers from Cazorla \textit{et al.} conflict with each other.
+As well, our experiment results on MSP430FR5969 conflict with Cazorla \textit{et al.}'s two papers.
 That is also one of the project's motivations.
 
 \subsection{Cryptographic Hash Functions}
-As far as I know, there is no cryptographic hash function survey researches from 2010.
+As far as I know, there is no cryptographic hash function survey research from 2010.
 A most-cited one is survey paper from Bakhtiari \textit{et al.} in 1995 \cite{bakhtiari1995cryptographic}.
 The functions they discussed in that paper are MD2, MD4, MD5 and SHA-1.
-However it is not useful now because all those discussed functions are full attacked:
+However, it is not useful now because all those discussed functions are full attacked:
 
 \begin{itemize}
-    \item MD2 was shown to be vulnerable for collision by Muller in 2004,
+    \item MD2 was shown to be vulnerable to collision by Muller in 2004,
           using a preimage attack with a time complexity equivalent to $2^{104}$. \cite{muller2004md2}
     \item MD4 was fully collided using cheap computational cost by Leurent
           using preimage attack in a time complexity of $2^{102}$ in 2008. \cite{leurent2008md4}
     \item MD5 has been proved its distribution is not safe since 2004 \cite{hawkes2004musings}.
           Later in 2013, Xie \textit{et al.} published a method for a very quick collision attack \cite{xie2013fast},
           which takes less than a second to attack it on a regular computer.
-    \item SHA-1 was also fully proved to be vulnerable for collision, using multi-block collision techniques
+    \item SHA-1 was also fully proved to be vulnerable to collision, using multi-block collision techniques
           by Wang \textit{et al.} since 2005. \cite{wang2005finding}
 \end{itemize}
 
 Besides, there are many cryptographic hash function papers using block ciphers to construct hash functions.
 However, nearly all of the block ciphers are with key and block of same sizes.
 I can hardly find a paper constructing a hash function constructed using key and block of different sizes.
-This is not really helpful because the block ciphers we study are with various sizes of key and block.
+This is not helpful because the block ciphers we study are with various sizes of key and block.
 Therefore, this is the reason why I refer to open-source projects to seek \textit{g}-functions used for constructions
 in Section \ref{sec-one}.
 
-\subsection{Algorithm Optimization on MSP430}
+\subsection{Algorithm Optimization on MSP430} \label{sec-alg-opt}
 I have searched for ``assembly language'', ``MSP 430'' and ``Optimization'' key words on Google\texttrademark Scholar.
 The only results that I can find are about factory assembly lines or sequences.
 
@@ -207,9 +207,9 @@ Therefore, I referred to some online materials which are mentioned in Section \r
 
 A lightweight implementation is defined as requiring up to 32 KB ROM and 8 KB RAM by Manifavas \textit{et al.}'s work\cite{manifavas2014lightweight}.
 All our selected lightweight algorithms satisfy these requirements.
-Moreover, in this project, we need decipher functions only because cipher operations can be performed in PC which has rich computational resources.
+Moreover, in this project, we need decipher functions only because cipher operations can be performed in PC which has abundant computational resources.
 
-At the beginning, we selected seven block cipher algorithms from Cazorla \textit{et al.}'s two papers \cite{cazorla2013survey, cazorla2015survey}.
+In the beginning, we selected seven block cipher algorithms from Cazorla \textit{et al.}'s two papers \cite{cazorla2013survey, cazorla2015survey}.
 Those seven algorithms were AES-128\cite{pub2001197}, LBlock\cite{wu2011lblock}, MIBS-64\cite{izadi2009mibs},
 Piccolo-128\cite{shibutani2011piccolo}, SEA\cite{standaert2006sea}, SPECK64-128\cite{beaulieu2015simon}, XTEA\cite{needham1997tea, wheeler1998correction}.
 The experiments results can be seen in Table \ref{tab-beg}.
@@ -217,12 +217,12 @@ The experiments results can be seen in Table \ref{tab-beg}.
 \begin{table*}[tbp]
 \centering
 \caption{Experiments on AES-128, LBlock, MIBS-64, Piccolo-128, SEA, SPECK64-128 and XTEA,
-using TI v2016 compiler -O3 speed optimization.
-Column ``Begin'' means cumulated cycle counter at the entry of the decipher function;
-while column ``End'' means the cumulated cycle count after the decipher function returns.
+using TI v16 compiler ``-O3 fastest'' optimization.
+Column ``Begin'' means cumulated clock cycle counter at the entry of the decipher function;
+while column ``End'' means the cumulated clock cycle count after the decipher function returns.
 Therefore, column ``Cycle count'' equals to the difference between ``End'' and ``Begin''.
 Code size is the decipher function's binary code size;
-whereas the internal state size is the maximum in-use local variable size (function parameters are excluded).}
+whereas the internal state size is the maximum size of in-use local variables (function parameters are excluded).}
 \label{tab-beg}
 \begin{tabular}{lcrrrrr}
     \toprule
@@ -286,15 +286,15 @@ In this paper, we discuss 128-bit-key version only. So far, successful 7-round (
 and the best time complexity we could find is $2^{100}$ by Derbez \textit{et al.} \cite{derbez2013improved}.
 
     \item
-\textbf{Camellia}. The Camellia \cite{aoki2000camellia} has variable key sizes and we only study the 128-bit key size version with 128-bit block.
+\textbf{Camellia}. The Camellia \cite{aoki2000camellia} has variable key sizes and we only study the 128-bit key size version with 128-bit block size.
 The codes we use to test for this algorithm are the latest version (v1.2.0) from the company officially \cite{ntt2007},
 and the greatest round attack is on 11-round by Li \textit{et al.} \cite{li2015meet}.
 
     \item
 \textbf{CLEFIA}. The CLEFIA \cite{shirai2007128} is developed by Sony \cite{sony2008},
 and it has 128-bit block and three different key size versions: 128-bit, 192-bit and 256-bit keys.
-In this paper we discuss 128-bit key version because smaller key versions are often faster.
-Most attacks on CLEFIA are based on 192-bit key and 256-bit key versions, hence there are less attacks on 128-bit key version.
+In this paper, we discuss 128-bit key version because smaller key versions are often faster.
+Most attacks on CLEFIA are based on 192-bit key and 256-bit key versions. Hence there are fewer attacks on the 128-bit key version.
 The greatest round attack we could find on 128-bit key version is on 14-round also by Li \textit{et al.} \cite{li2015meet}.
 
     \item
@@ -302,22 +302,22 @@ The greatest round attack we could find on 128-bit key version is on 14-round al
 The best attack using Related-Key Impossible Differential is on 24-round with a time complexity of $2^{75.42}$ by Xie \textit{et al.} \cite{xie2017related}.
 
     \item
-\textbf{LEA}. The LEA \cite{hong2013lea} is designed for 32 bit processor which the authors think is the most common processor type,
+\textbf{LEA}. The LEA \cite{hong2013lea} is designed for 32-bit processor which the authors think is the most common processor type,
 and the best attack is 14-round attack by Song \textit{et al.} \cite{song2016automatic}.
 It takes 128-bit key and 128-bit block. To test it on MSP430, we use an 8-bit implementation by KISA \cite{kisa2015}.
 
     \item
 \textbf{PRINCE}. The PRINCE \cite{borghoff2012prince} takes 64-bit block and 128-bit key.
-The best attack is on 9th round (out of 12) with time complexity of $2^{55.14}$.
+The best attack is on ninth round (out of 12) with time complexity of $2^{55.14}$.
 This block cipher uses a lot of 64-bit operations which can be found on the reference implementation by Riou \cite{sebastienriou2016}.
 Therefore, to test it on MSP430, we use an 8-bit implementation by Dare \cite{chrisdare2016}.
 
     \item
 \textbf{SEA}. The SEA \cite{standaert2006sea} block cipher we use in this paper has 96-bit block size and key size.
-According to the original paper, the author suggests to use $\frac{3n}{4}+2\cdot (n_{b}+\left \lfloor b/2 \right \rfloor)$ rounds and the round number must be odd.
+According to the original paper, the author suggests to use $\frac{3n}{4}+2\cdot (n_{b}+\left \lfloor b/2 \right \rfloor)$ rounds, and the round number must be odd.
 On MSP430 platform, it should have 95 rounds in total, which is our modified version based on Cazorla \textit{et al.}'s project.
-In addition, we could hardly find cryptanalysis works on SEA block cipher.
-Although, the original paper contains some attack analysis, they are not experiment results. Therefore, we leave the attack information on SEA not applicable.
+Also, we could hardly find cryptanalysis works on SEA block cipher.
+Although the original paper contains some attack analysis, they are not experiment results. Therefore, we leave the attack information on SEA not applicable.
 
     \item
 \textbf{SIMON and SPECK}. SIMON and SPECK are presented in the same paper by Beaulieu \textit{et al.} \cite{beaulieu2015simon}
@@ -399,7 +399,7 @@ There are mainly two types of implementations: padding zeros \cite{naoyukimorita
 duplicating inputs to perform $n$-to-$2n$ mapping \cite{nikhilvarghese2017}.
 
 we decide to use padding zeros as the \textit{g}-functions to perform $a$-size-to-$b$-size mapping,
-because the algorithms we select contain LBlock that uses 80-bit key and 64-bit block,
+because the algorithms we select contain LBlock that uses an 80-bit key and a 64-bit block,
 which does not suit the rest two mapping strategies; and the block sizes are less than or equal to the key sizes.
 As a result, padding zeros is very flexible and suitable for our experiments.
 
@@ -436,12 +436,12 @@ This tool provides 14 tests:
 However, this is our future work because I have not figured out the indicators on the report yet.
 
 \subsection{Integration with the Whole System} \label{sec-int}
-First of all, all the constructed hash functions have the same function signature, thus, the hash function can be changed seamlessly if we find an in-use one has some issues.
+First of all, all the constructed hash functions have the same function signature; thus, the hash function can be changed seamlessly if we find an in-use one has some issues.
 Also, our PC client is a cross-platform software, so I implemented the Python hash function interface to invoke original C codes.
-It not only keeps the cross-platform feature, but also reduces the unnecessary workload of implementing hash function in Python again.
+It not only keeps the cross-platform feature but also reduces the unnecessary workload of implementing the hash function in Python again.
 
 The hash function in the system takes two parameters: starting address, round count, nonce.
-The starting address is the beginning address of the plain text and the nonce is either random number from PUF or the checksum from previous step.
+The starting address is the beginning address of the plain text, and the nonce is either random number from PUF or the checksum from the previous step.
 
 The hash function calculates the resulting checksum for a whole block length from the starting address.
 In each round, the starting address is converted to a new address by the \textit{t}-function.
@@ -449,20 +449,98 @@ Then, repeat this step until it calculates the checksum for ``round count'' time
 
 
 \section{Optimization}
+The MSP430FR5969 MCU is 16-bit architecture.
+If we use operations involving data size greater than 16 bit, those operations will be converted into 16-bit operations by compilers automatically.
+Base on our experience, compiler's optimizations are always not optima.
+That is why we still worth trying to optimize them manually.
 
 \subsection{Compiler Optimization}
+As far as I know, there are three compilers that support MSP430:
+
+\begin{enumerate}
+    \item TI compiler is a close-source implementation from TI.
+    \item GNU gcc is powered by GNU open-source community, supporting plenty of instruction sets.
+    \item LLVM is a set of compilers and toolchains \footnote{The LLVM Compiler Infrastructure: \url{https://llvm.org/}.}.
+          To use it on MSP430, ``clang'' from LLVM is a must. It aims to deliver fast and best optimizations.
+\end{enumerate}
+
+Every compiler provides a set of optimization levels, and the ``min time option'' is always faster than ``min space option''.
+The issue is TI does not support ``LLVM+clang'' officially; it is not easy to debug the product codes from ``LLVM+clang''.
+I have to compile it and run the assembly codes from ``LLVM+clang''on MSP430 by myself.
+Here are the cycle count experiments on ``XTEA'' decipher function:
+
+\begin{enumerate}
+    \item TI v16 compiler: 12391 (-O3)
+    \item GNU gcc v6.4.0.32 compiler: 17572 (-O3)
+    \item LLVM+clang v3.4: 12493 (-O3)
+\end{enumerate}
+
+From the experiments, TI's compiler performs better than the rest two.,
+though, ``LLVM+clang'' is very close to TI's compiler.
+
 
 \subsection{High-Level Programming Language Optimization}
-// TODO: methods
+As is mentioned that the MSP430 uses 16-bit architecture, it is beneficial to use native 16-bit operations in C codes,
+instead of compiler-converted 16-bit operations.
+
+Firstly, I checked whether Big Endian or Little Endian was used in MSP430.
+From an official document \footnote{MSP430 Family Memory Organization: \url{http://www.ti.com/sc/docs/products/micro/msp430/userguid/ag_04.pdf}.},
+I found that ``word'' type used Little Endian; whereas ``dword'' and ``qword'' were not mentioned.
+However, I must know whether ``dword'' and ``qword'' used Little Endian or not
+because there were many ``uint32\_t''and ``uint64\_t'' types in original implementations.
+Without this information, I cannot manually rewrite them into ``uint16\_t'' operations.
+
+Therefore, after a manual testing by defining different types of variables and checking the memory states,
+I found that all data are stored in Little Endian format.
+Base on this information, I did the following attempts at high-level programming language optimization
+on a hash function called ``BLAKE2s'' \cite{aumasson2016blake2x}.
+The implementation is from Yang Su who is from AutoID Lab, and the optimization level is ``-O2 fastest''.
+Detailed optimization logs can be found on my week 10 blog
+\footnote{Week 10 blog: \url{https://github.cs.adelaide.edu.au/Mobile-Wireless-Systems-2017-S2/Crypto4RFID-1/wiki/Yuanzhong-Xia-Week-10-Blog-(a1700831)}.}.
+
+\subsubsection{Shrinking data types}
+Unnecessary great data types can be replaced with a little size.
+For example, there was a ``for loop'' indexer using ``uint16\_t''.
+So, I modified it into ``uint8\_t'', and the clock cycle count reduced from 106,482 to 105,050.
+
+\subsubsection{Replacing timing multiples of two}
+I did an experiment on replacing a high-frequently used ``4 * i'' with ``i << 2'',
+the final clock cycle count was not changed which indicated that the compiler had already optimized this operation.
+
+\subsubsection{Replacing 32-bit operations directly with 16-bit operations.}
+I did an experiment on replacing ``six 32-bit operations'' with ``three 32-bit operations and four 16-bit operations'',
+the clock cycle count reduced from 105,050 to 99,742.
+
+\subsubsection{Using XOR instead of OR}
+I did an experiment on both using OR in a circular shift and using XOR in a circular shift.
+The OR version took 258,941 cycles (double checked), while the XOR version took 99,742 cycles.
+
+\subsubsection{C pointer typecasting}
+Using the pointer typecasting on addresses can achieve fewer operations.
+It highly depends on the original codes, and it does not often work effectively because it is still then optimized by the compiler.
+The final clock cycle count is 96,919.
 
 \subsection{Low-Level Programming Language Optimization} \label{sec-low}
-// TOOD: online materials
+As I mentioned in Section \ref{sec-alg-opt}, I failed to find researches on low-level programming language optimization.
+As a result, I found some materials from online communities.
 
+\begin{itemize}
+    \item One is from StackOverflow \footnote{What are some tips for optimizing the assembly code generated by a compiler? \url{https://stackoverflow.com/a/3773213/4206925}.},
+          which guides me to use as many registers as possible.
+    \item Another one is from ``masmcode.com'' \footnote{\textit{Assembly Optimization Tips} by Mark Larson: \url{http://mark.masmcode.com/}.},
+          which drives many examples on how I can optimize the assembly level codes.
+\end{itemize}
+
+This remains to be a future work because I have not figured out a way to make TI's compiler to generate runnable assembly codes in current stage.
 
 % TODO: feedback from writing centre
 
 \section{Conclusion}
-// TODO:
+// TODO: achievements in collusion
+
+// TOOD: my reflections from this project
+
+// TODO: acknowledgements for supervisors and tutors
 
 
 % -----------
