@@ -40,12 +40,12 @@
 %% abstract
 % ---------
 \begin{abstract}
-    % TODO: change this abstract
-    This report firstly introduces the background and motivation of this project, which is to build a secure CRFID system.
-    Then, our system overview, system components and my contributions are mentioned in detail.
-    My contributions include the lightweight block cipher algorithm study, hash function study and optimization study.
-    Besides, others' related works on cryptanalysis, hash function cryptanalysis are mentioned as well.
-    In the end, there are conclusions and my reflections about the whole project.
+    CRFID is a version of RFID with an embedded microcontroller.
+    With this microcontroller, we can implement a CRFID security system to make the communication between the reader and the CRFID more authenticated.
+    I did some studies on ten secure lightweight block cipher algorithms and used their decipher functions to build 30 hash functions
+    using Prefix-Free Merkle--Damgard, Matyas--Meyer--Oseas and Miyaguchi--Preneel constructions.
+    Then I performed a benchmark using ``SHMasher'' to find the fastest secure hash function to be applied to our project.
+    Finally, we successfully built a secure CRFID system using the fastest secure hash function: XTEA + Prefix-Free Merkle--Damgard.
 \end{abstract}
 \keywords{Embedded System, RFID, Encryption, Hash, MSP430, Optimization, Security}
 \maketitle
@@ -389,18 +389,18 @@ We need to apply one-way compression functions to block cipher functions.
 A one-way compression function is supposed to take two fixed-size block and generate one fixed-size block.
 To build hash functions from block cipher algorithms, the one-way compression function is also known as construction.
 
-In our experiments, we use Prefix-Free Merkle--Damgard construction (PFMD) \cite{mirvaziri2007collision}, Matyas--Meyer--Oseas (MMO) construction \cite{wikipedia2017one}
+In our experiments, we used Prefix-Free Merkle--Damgard construction (PFMD) \cite{mirvaziri2007collision}, Matyas--Meyer--Oseas (MMO) construction \cite{wikipedia2017one}
 and Miyaguchi--Preneel (MP) construction \cite{wikipedia2017one} to convert block cipher's decipher functions into hash functions.
 When dealing with $a$-size-to-$b$-size constructions, I firstly tried to find authoritative research papers using different \textit{g}-functions.
 However, as far as I searched, there was no such paper explaining the choice of \textit{g}-function.
 Therefore, I referred to some open source security implementations.
-There are mainly two types of implementations: padding zeros \cite{naoyukimorita2017},
+There were mainly two types of implementations: padding zeros \cite{naoyukimorita2017},
 duplicating inputs to perform $n$-to-$2n$ mapping \cite{nikhilvarghese2017}.
 
-we decide to use padding zeros as the \textit{g}-functions to perform $a$-size-to-$b$-size mapping,
-because the algorithms we select contain LBlock that uses an 80-bit key and a 64-bit block,
-which does not suit the rest two mapping strategies; and the block sizes are less than or equal to the key sizes.
-As a result, padding zeros is very flexible and suitable for our experiments.
+I decided to use padding zeros as the \textit{g}-functions to perform $a$-size-to-$b$-size mapping,
+because the algorithms I selected contain LBlock that used an 80-bit key and a 64-bit block,
+which did not suit the rest two mapping strategies; and the block sizes were less than or equal to the key sizes.
+As a result, padding zeros was very flexible and suitable for our experiments.
 
 % \subsection{Cryptographic Hash Functions}
 % NOT GOING TO DO: \subsection{Pure Hash Function}
@@ -408,12 +408,12 @@ As a result, padding zeros is very flexible and suitable for our experiments.
 \subsection{Benchmark}
 After I constructed the 30 hash functions \footnote{The 30 hash functions constructed by me: \url{https://github.cs.adelaide.edu.au/Mobile-Wireless-Systems-2017-S2/Crypto4RFID-1/tree/master/Hash/hash-testbench}.}
 using PFMD, MMO and MP on the selected ten block cipher algorithms,
-I need to benchmark the security and performance of those constructed hash functions,
-because those hash functions are not guaranteed to be collision-free and safe.
+I needed to benchmark the security and performance of those constructed hash functions,
+because those hash functions wer not guaranteed to be collision-free and safe.
 
 We applied a tool called ``SMHasher'' \footnote{Our forked SMHasher: \url{https://github.com/MewX/smhasher/tree/master/src/ourhash}.}
 to all those hash functions respectively.
-This tool provides 14 tests:
+This tool provided 14 tests:
 
 \begin{enumerate}
     \item Sanity tests
@@ -432,11 +432,13 @@ This tool provides 14 tests:
     \item Keyset Seed tests
 \end{enumerate}
 
-However, this is our future work because I have not figured out the indicators on the report yet.
+Although this would be our future work because I had not figured out the indicators on the report yet,
+from the reports generated by ``SMHasher'', I was able to select the best hash function roughly according to its collision probability and time spent.
+This best hash function was ``XTEA using PFMD construction''.
 
 \subsection{Integration with the Whole System} \label{sec-int}
-First of all, all the constructed hash functions have the same function signature; thus, the hash function can be changed seamlessly if we find an in-use one has some issues.
-Also, our PC client is a cross-platform software, so I implemented the Python hash function interface to invoke original C codes.
+First of all, all the constructed hash functions have the same function signature; thus, the hash function can be switched seamlessly if we find an in-use one has some issues.
+Also, our PC client is a cross-platform software, so I implement the Python hash function interface to invoke original C codes.
 It not only keeps the cross-platform feature but also reduces the unnecessary workload of implementing the hash function in Python again.
 
 The hash function in the system takes two parameters: starting address, round count, nonce.
@@ -445,6 +447,10 @@ The starting address is the beginning address of the plain text, and the nonce i
 The hash function calculates the resulting checksum for a whole block length from the starting address.
 In each round, the starting address is converted to a new address by the \textit{t}-function.
 Then, repeat this step until it calculates the checksum for ``round count'' times.
+
+This process is run on both WISP 5 and PC, so that the final two checksums are compared with each other.
+If they do not match, the WISP 5 is not authenticated and no further confidential communication will happen.
+This authentication mechanism makes the CRFID system secure.
 
 
 \section{Optimization}
@@ -487,18 +493,18 @@ From an official document \footnote{MSP430 Family Memory Organization: \url{http
 I found that ``word'' type used Little Endian; whereas ``dword'' and ``qword'' were not mentioned.
 However, I must know whether ``dword'' and ``qword'' used Little Endian or not
 because there were many ``uint32\_t''and ``uint64\_t'' types in original implementations.
-Without this information, I cannot manually rewrite them into ``uint16\_t'' operations.
+Without this information, I could not manually rewrite them into ``uint16\_t'' operations.
 
 Therefore, after a manual testing by defining different types of variables and checking the memory states,
 I found that all data are stored in Little Endian format.
 Base on this information, I did the following attempts at high-level programming language optimization
 on a hash function called ``BLAKE2s'' \cite{aumasson2016blake2x}.
-The implementation is from Yang Su who is from AutoID Lab, and the optimization level is ``-O2 fastest''.
+The implementation was from Yang Su who was from AutoID Lab, and the optimization level was ``-O2 fastest''.
 Detailed optimization logs can be found on my week 10 blog
 \footnote{Week 10 blog: \url{https://github.cs.adelaide.edu.au/Mobile-Wireless-Systems-2017-S2/Crypto4RFID-1/wiki/Yuanzhong-Xia-Week-10-Blog-(a1700831)}.}.
 
 \subsubsection{Shrinking data types}
-Unnecessary great data types can be replaced with a little size.
+Unnecessary big data types can be replaced with a little size type.
 For example, there was a ``for loop'' indexer using ``uint16\_t''.
 So, I modified it into ``uint8\_t'', and the clock cycle count reduced from 106,482 to 105,050.
 
@@ -530,9 +536,8 @@ As a result, I found some materials from online communities.
           which drives many examples on how I can optimize the assembly level codes.
 \end{itemize}
 
-This remains to be a future work because I have not figured out a way to make TI's compiler to generate runnable assembly codes in current stage.
+This remained to be a future work because I had not figured out a way to make TI's compiler to generate runnable assembly codes in current stage.
 
-% TODO: feedback from writing centre
 
 \section{Conclusion}
 // TODO: achievements in collusion
