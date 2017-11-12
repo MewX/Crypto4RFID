@@ -1,10 +1,10 @@
 # push latest file
-scp -i test.pem *.tex cloud-user@mse.mewx.org:~/mse2017-buoy/Reports/Sem2Final-Yuanzhong/
-scp -i test.pem *.bib cloud-user@mse.mewx.org:~/mse2017-buoy/Reports/Sem2Final-Yuanzhong/
+scp *.tex a1700831@uss.cs.adelaide.edu.au:~/Documents/Crypto4RFID-1/Reports/yuanzhong/
+scp *.bib a1700831@uss.cs.adelaide.edu.au:~/Documents/Crypto4RFID-1/Reports/yuanzhong/
 
 # compile first
-ssh -i test.pem cloud-user@mse.mewx.org "cd ~/mse2017-buoy/Reports/Sem2Final-Yuanzhong/ && sh -x remote.sh"
+ssh a1700831@uss.cs.adelaide.edu.au "cd ~/Documents/Crypto4RFID-1/Reports/yuanzhong/ && sh -x remote.sh"
 
 # drag back
-scp -i test.pem cloud-user@mse.mewx.org:~/mse2017-buoy/Reports/Sem2Final-Yuanzhong/*.pdf .
+scp a1700831@uss.cs.adelaide.edu.au:~/Documents/Crypto4RFID-1/Reports/yuanzhong/*.pdf .
 
