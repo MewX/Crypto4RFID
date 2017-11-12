@@ -13,6 +13,7 @@
 \usepackage{gensymb}
 \usepackage{textcomp}
 \usepackage{xspace}
+\usepackage{threeparttable}
 
 \let\OldTexttrademark\texttrademark
 \renewcommand{\texttrademark}{\OldTexttrademark\xspace}%
@@ -252,10 +253,10 @@ PRINCE \cite{borghoff2012prince}, SEA, SIMON \cite{beaulieu2015simon}, SPECK and
 
 My survey results on their cryptanalysis and best attack records are shown in Table \ref{tab-security}.
 
-\begin{table*}[tbp]
+\begin{table*}[]
 \centering
+\begin{threeparttable}
 \caption{Survey results on selected secure block cipher algorithms.}
-\label{tab-security}
 \begin{tabular}{lrcrrr}
     \toprule
 Name (block/key)   & Reference & Structure & Round (attacked/total) & Attack time complexity & Attack reference \\
@@ -272,6 +273,10 @@ SPECK (64/128) & \cite{beaulieu2015simon} & Feistel & 19/27 & $2^{125}$ & \cite{
 XTEA (64/128) & \cite{wheeler1998correction} & Feistel & 27/64 & $2^{120.71}$ & \cite{bogdanov2012zero} \\
     \bottomrule
 \end{tabular}
+\begin{tablenotes}
+\item [*] $A$ means addition; $E$ means encryption;
+\end{tablenotes}
+\end{threeparttable}
 \end{table*}
 
 For those algorithms, we used the reference codes from Cazorla \textit{et al.}
@@ -541,18 +546,18 @@ This remained to be a future work because I had not figured out a way to make TI
 
 \section{Conclusion}
 Studies on lightweight block cipher algorithms, cryptographic hash functions and optimizations went well in the project.
-Based on those studies, our team finally built a secure CRFID system in which the reader could verify the legitimacy of a CRFID.
+Based on those studies, our team finally built a secure CRFID system in which the reader could verify the legitimacy of a CRFID using the studied hash function - XTEA using PFMD construction.
 Further, this system could prevent random replay attack because the nonce was uniquely generated from SRAM.
 
 During the development process, I learned a lot on doing researches, such as the ways to look for information, and the ways to analyse others' experiments.
-Also, from writing centre session, I finally learned how to write abstract and use past tense for stating experiment results.
+Also, from writing centre session, I finally learned how to write abstract and that I should use past tense for stating experiment results.
 
 
 \section{Acknowledgement}
 Without the help of course supervisor Damith, AutoID Lab researchers Yang and Michael's help,
 the studies would be impossible to go this far and produce a new survey on the cryptanalysis information on lightweight block cipher algorithms.
 
-Also, teammates Sangyeol, Jingwen and Yang did a lot in their components; the project could not be finished without their efforts.
+Also, teammates Sangyeol, Jingwen and Yang did a lot in their components. The project was impossible to be finished without their efforts.
 
 
 % -----------
